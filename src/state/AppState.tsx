@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useReducer } from
 import { BUNDLES, CHANNELS, PRODUCTS, RECIPES } from '../data/mock'
 import type { Bundle, CampaignStatus, ChannelState, Product, ProductAsset, Recipe, SegmentKey, StepState, Toast } from '../data/types'
 import { DEFAULT_WEIGHTS, pangvSummary, scoreProducts } from '../lib/ai'
+import { assetSummary } from '../lib/assets'
 
 export type FlyerLayout = 'klassisch' | 'editorial' | 'kompakt'
 
@@ -278,7 +279,7 @@ export function approvalChecklist(s: State): CheckRow[] {
     { key: 'produkte', label: 'Produkte validiert', detail: importDone ? `${s.importSt.rows} Datensätze · ${s.importSt.warnings} Warnungen` : `Noch kein validierter Import für KW ${s.campaignWeek}`, state: importDone && s.importSt.errors === 0 ? 'ok' : 'error' },
     { key: 'preise', label: 'Preise validiert', detail: pricesOk ? 'Alle Aktionspreise unterhalb der Normalpreise' : 'Mindestens ein Aktionspreis ≥ Normalpreis', state: pricesOk ? 'ok' : 'error' },
     { key: 'pangv', label: 'PAngV-Vorprüfung', detail: `${pangv.ok + pangv.offen}/${pangv.total} geprüft · ${pangv.offen} offen · ${pangv.warnung} Warnungen · ${pangv.kritisch} kritisch`, state: pangv.kritisch === 0 ? 'ok' : 'error' },
-    { key: 'bilder', label: 'Bilder verfügbar', detail: `${s.products.length}/${s.products.length} Produktmotive zugeordnet`, state: 'ok' },
+    { key: 'bilder', label: 'Bilder verfügbar', detail: (() => { const a = assetSummary(s.assets); return s.assets.length === 0 ? `${s.products.length}/${s.products.length} no asignados` : `${s.products.length} Artikel — ${a.lieferant} Lief., ${a.optimiert} opt., ${a.ki} KI` })(), state: s.assets.length >= s.products.length ? 'ok' : 'open' },
     { key: 'rezepte', label: 'Rezepte freigegeben', detail: s.flyer.recipeId ? (s.approval.recipeOk ? 'Rezept der Woche bestätigt' : 'Rezept im Flyer – Bestätigung ausstehend') : 'Kein Rezept im Flyer', state: s.flyer.recipeId && s.approval.recipeOk ? 'ok' : 'open', action: 'recipe' },
     { key: 'bundles', label: 'Bundles freigegeben', detail: s.flyer.bundleId ? (s.approval.bundleOk ? 'Smart Bundle bestätigt' : 'Bundle im Flyer – Bestätigung ausstehend') : 'Kein Bundle im Flyer', state: s.flyer.bundleId && s.approval.bundleOk ? 'ok' : 'open', action: 'bundle' },
     { key: 'personalisierung', label: 'Personalisierung bereit', detail: s.flyer.personalization ? '6 Zielgruppensegmente aktiv, Vorschau geprüft' : 'Personalisierung deaktiviert – alle Kunden sehen denselben Flyer', state: s.flyer.personalization ? 'ok' : 'open' },

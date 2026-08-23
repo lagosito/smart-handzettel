@@ -6,6 +6,7 @@ import { AiTag, Badge, Btn, Card, DataTable, Modal, SectionHead, Tabs, cn, input
 import { Icon } from '../lib/icons'
 import { recipeById, bundleById } from '../data/mock'
 import { pangvCheck, pangvCampaignCheck } from '../lib/ai'
+import { assetSummary } from '../lib/assets'
 
 export default function Kampagnen() {
   const { state, dispatch, notify } = useApp()
@@ -220,6 +221,27 @@ export default function Kampagnen() {
                 <Icon name="eye" size={14} />
                 Flyer-Vorschau öffnen
               </Btn>
+            </Card>
+
+            <Card>
+              <SectionHead title="Bilder & Assets" sub="Provenance der Produktbilder" />
+              {(() => {
+                const summary = assetSummary(state.assets)
+                const totalProducts = state.products.length
+                return (
+                  <div className="text-[12.5px] text-zinc-600 leading-relaxed">
+                    {state.assets.length === 0 ? (
+                      <span className="text-zinc-400">Noch keine Assets zugeordnet.</span>
+                    ) : (
+                      <span>
+                        <span className="font-bold text-zinc-900">{totalProducts} Artikel</span> —{' '}
+                        {summary.lieferant} Lieferantenbild, {summary.optimiert} optimiert,{' '}
+                        {summary.ki} KI-generiert (als Symbolbild gekennzeichnet)
+                      </span>
+                    )}
+                  </div>
+                )
+              })()}
             </Card>
 
             <Card className="border-accent-200 bg-accent-50/40">

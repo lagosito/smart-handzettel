@@ -5,10 +5,10 @@ export const KI_ALLOWED_CATEGORIES: Category[] = ['Obst & Gemüse', 'Fleisch', '
 
 /**
  * Prüft ob ein KI-Bild für dieses Produkt erzeugt werden darf.
- * Markenartikel (brand gesetzt) sind gesperrt: Urheberrecht + irreführende Werbung (UWG).
+ * Markenartikel (markenartikel=true) sind gesperrt: Urheberrecht + irreführende Werbung (UWG).
  */
 export function canGenerateImage(p: Product): { allowed: boolean; reason?: string } {
-  if (p.brand && p.brand.trim() !== '') {
+  if (p.markenartikel) {
     return { allowed: false, reason: 'KI-Bild nicht zulässig: Markenartikel.' }
   }
   if (!KI_ALLOWED_CATEGORIES.includes(p.category)) {
@@ -19,16 +19,15 @@ export function canGenerateImage(p: Product): { allowed: boolean; reason?: strin
 
 /**
  * Stub: erzeugt ein KI-Asset. In Produktion hier den echten Generator aufrufen.
- * Symbolbild immer true bei KI-Generierung ( enforced, nicht per Convention).
+ * Symbolbild immer true bei KI-Generierung (enforced, nicht per Convention).
  */
 export async function generateAsset(p: Product): Promise<ProductAsset> {
-  // Simulierte Verzögerung
   await new Promise((r) => setTimeout(r, 100))
   return {
     productId: p.id,
     src: undefined,
     source: 'ki',
-    symbolbild: true, // KI-Assets sind immer Symbolbilder
+    symbolbild: true,
     note: 'KI-generiertes Symbolbild',
     updatedAt: new Date().toISOString(),
   }
@@ -50,19 +49,4 @@ export function assetSummary(assets: ProductAsset[]): {
     else if (a.source === 'ki') ki++
   }
   return { lieferant, optimiert, ki, total: assets.length }
-}
-
-/**
- * Erzeugt ein Optimiert-Asset (Stub).
- */
-export async function optimizeAsset(p: Product): Promise<ProductAsset> {
-  await new Promise((r) => setTimeout(r, 50))
-  return {
-    productId: p.id,
-    src: undefined,
-    source: 'optimiert',
-    symbolbild: false,
-    note: 'Maschinell optimiertes Produktbild',
-    updatedAt: new Date().toISOString(),
-  }
 }

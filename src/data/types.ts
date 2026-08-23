@@ -17,6 +17,7 @@ export interface Product {
   id: string
   name: string
   brand: string
+  markenartikel: boolean
   category: Category
   ean: string
   unit: string
