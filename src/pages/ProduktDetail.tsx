@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../state/AppState'
-import { pangvCheck, placementFor, scoreProduct } from '../lib/ai'
+import { pangvCheck, placementFor, scoreOne, scoreProducts } from '../lib/ai'
 import { Badge, Btn, Card, HBars, Progress, ScoreRing, SectionHead, Sparkline, cn } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { CATEGORY_STYLE } from '../data/mock'
@@ -39,7 +39,7 @@ export default function ProduktDetail() {
   }
 
   const pv = pangvCheck(p)
-  const r = scoreProduct(p, state.weights)
+  const r = scoreOne(p, state.products, state.weights)
   const st = CATEGORY_STYLE[p.category]
   const inFlyer = state.flyer.included.includes(p.id)
   const danger = pv.status === 'kritisch'

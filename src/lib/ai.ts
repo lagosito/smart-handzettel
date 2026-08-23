@@ -1,5 +1,4 @@
 import type { Product, ScoreResult } from '../data/types'
-import { PRODUCTS } from '../data/mock'
 import { discount } from './utils'
 
 // ── Factors & Weights ────────────────────────────────────────────
@@ -46,20 +45,22 @@ function averageRanks(values: number[]): number[] {
   while (i < indexed.length) {
     let j = i
     while (j < indexed.length && indexed[j].v === indexed[i].v) j++
-    const avgRank = (i + 1 + j) / 2 // average of 1-indexed positions i+1..j
+    const avgRank = (i + 1 + j) / 2
     for (let k = i; k < j; k++) ranks[indexed[k].i] = avgRank
     i = j
   }
   return ranks
 }
 
-/** Compute percentile [0,1] for each product's value within a cohort. */
-function percentileCohort(values: number[]): number[] {
-  if (values.length === 0) return []
-  if (values.length === 1) return [0.5]
-  const ranks = averageRanks(values)
-  const n = values.length
-  return ranks.map((r) => Math.max(0, Math.min(1, (r - 1) / (n - 1))))
+/** Compute percentile [0,1] for each value, returned as id→percentile map. */
+function buildPercentileMap(products: Product[], rawVals: number[]): Map<string, number> {
+  const map = new Map<string, number>()
+  if (products.length === 0) return map
+  if (products.length === 1) { map.set(products[0].id, 0.5); return map }
+  const ranks = averageRanks(rawVals)
+  const n = products.length
+  products.forEach((p, i) => map.set(p.id, Math.max(0, Math.min(1, (ranks[i] - 1) / (n - 1)))))
+  return map
 }
 
 /** Get raw value for a factor from a product. */
@@ -77,6 +78,10 @@ function rawValue(p: Product, key: string): number {
 
 // ── Core scoring ─────────────────────────────────────────────────
 
+/**
+ * Score all products by percentile rank within category cohorts.
+ * Precomputes all percentile tables once — O(n log n) overall, not quadratic.
+ */
 export function scoreProducts(
   products: Product[],
   weights: Record<string, number> = DEFAULT_WEIGHTS,
@@ -91,83 +96,61 @@ export function scoreProducts(
     byCategory.set(p.category, arr)
   }
 
-  // Precompute percentile tables per factor × category
-  // For each factor, build: category → product → percentile
-  const factorPercentiles = new Map<string, Map<string, number>>()
-  // Also build full-dataset percentile tables for fallback
-  const fullPercentiles = new Map<string, number[]>()
-
+  // Precompute full-dataset percentile tables for fallback
+  const fullPctMaps = new Map<string, Map<string, number>>()
   for (const f of FACTORS) {
-    const catMap = new Map<string, number>()
-
-    // Build full dataset percentile for fallback
     if (f.key === 'stock') {
-      // stock: exclude low-stock from cohort
+      // stock: exclude low-stock from full cohort
       const eligible = products.filter((p) => p.stock >= LOW_STOCK_UNITS)
       const vals = eligible.map((p) => rawValue(p, f.key))
-      const pcts = percentileCohort(vals)
-      const fullMap = new Map<string, number>()
-      eligible.forEach((p, i) => fullMap.set(p.id, pcts[i]))
-      fullPercentiles.set(f.key, vals)
-      // For low-stock products, force 0.18
-      for (const p of products) {
-        if (p.stock < LOW_STOCK_UNITS) {
-          catMap.set(p.id, 0.18)
+      fullPctMaps.set(f.key, buildPercentileMap(eligible, vals))
+    } else {
+      const vals = products.map((p) => rawValue(p, f.key))
+      fullPctMaps.set(f.key, buildPercentileMap(products, vals))
+    }
+  }
+
+  // Per-factor percentile tables (category-aware)
+  const factorPctMaps = new Map<string, Map<string, number>>()
+
+  for (const f of FACTORS) {
+    const idToPct = new Map<string, number>()
+
+    if (f.key === 'stock') {
+      for (const [, catProducts] of byCategory) {
+        const eligible = catProducts.filter((p) => p.stock >= LOW_STOCK_UNITS)
+        if (eligible.length < 5) {
+          // Fallback: use full dataset percentile (already computed)
+          const fullMap = fullPctMaps.get(f.key)!
+          for (const p of catProducts) {
+            idToPct.set(p.id, p.stock < LOW_STOCK_UNITS ? 0.18 : (fullMap.get(p.id) ?? 0.5))
+          }
         } else {
-          catMap.set(p.id, fullMap.get(p.id) ?? 0.5)
+          // Category cohort
+          const vals = eligible.map((p) => rawValue(p, f.key))
+          const pctMap = buildPercentileMap(eligible, vals)
+          for (const p of catProducts) {
+            idToPct.set(p.id, p.stock < LOW_STOCK_UNITS ? 0.18 : (pctMap.get(p.id) ?? 0.5))
+          }
         }
       }
     } else {
-      const vals = products.map((p) => rawValue(p, f.key))
-      const pcts = percentileCohort(vals)
-      products.forEach((p, i) => catMap.set(p.id, pcts[i]))
-    }
-
-    // Per-category cohort (for reporting, but percentile already computed above)
-    // Actually, the brief says: compute percentile within category cohort,
-    // fallback to full dataset if cohort < 5. Let me redo this properly.
-
-    // Clear and redo with category-aware logic
-    catMap.clear()
-
-    for (const [cat, catProducts] of byCategory) {
-      if (f.key === 'stock') {
-        // stock: low-stock → 0.18, eligible products ranked among themselves
-        const eligible = catProducts.filter((p) => p.stock >= LOW_STOCK_UNITS)
-        for (const p of catProducts) {
-          if (p.stock < LOW_STOCK_UNITS) {
-            catMap.set(p.id, 0.18)
-          } else if (eligible.length < 2) {
-            catMap.set(p.id, 0.5)
-          } else {
-            const vals = eligible.map((ep) => rawValue(ep, f.key))
-            const pcts = percentileCohort(vals)
-            const idx = eligible.indexOf(p)
-            catMap.set(p.id, pcts[idx])
-          }
-        }
-      } else {
-        const vals = catProducts.map((p) => rawValue(p, f.key))
+      for (const [, catProducts] of byCategory) {
         if (catProducts.length < 5) {
-          // Fallback: rank against full dataset
-          const fullVals = products.map((p) => rawValue(p, f.key))
-          const fullPcts = percentileCohort(fullVals)
+          // Fallback: use full dataset percentile
+          const fullMap = fullPctMaps.get(f.key)!
           for (const p of catProducts) {
-            if (catProducts.length === 1) {
-              catMap.set(p.id, 0.5)
-            } else {
-              const idx = products.indexOf(p)
-              catMap.set(p.id, fullPcts[idx])
-            }
+            idToPct.set(p.id, fullMap.get(p.id) ?? 0.5)
           }
         } else {
-          const pcts = percentileCohort(vals)
-          catProducts.forEach((p, i) => catMap.set(p.id, pcts[i]))
+          const vals = catProducts.map((p) => rawValue(p, f.key))
+          const pctMap = buildPercentileMap(catProducts, vals)
+          catProducts.forEach((p) => idToPct.set(p.id, pctMap.get(p.id) ?? 0.5))
         }
       }
     }
 
-    factorPercentiles.set(f.key, catMap)
+    factorPctMaps.set(f.key, idToPct)
   }
 
   // Score each product
@@ -175,13 +158,14 @@ export function scoreProducts(
 
   for (const p of products) {
     const contributions = FACTORS.map((f) => {
-      const pctMap = factorPercentiles.get(f.key)!
+      const pctMap = factorPctMaps.get(f.key)!
       const v = pctMap.get(p.id) ?? 0.5
       const w = (weights[f.key] ?? 0) / totalW
       return { key: f.key, label: f.label, value: v, points: v * w * 100, pct: v * 100 }
     }).sort((a, b) => b.points - a.points)
 
     const raw = contributions.reduce((s, c) => s + c.points, 0)
+    // Presentation smoothing, not model output
     const score = Math.round(Math.min(SCORE_CEIL, Math.max(SCORE_FLOOR, SCORE_FLOOR + raw * SCORE_GAIN)))
 
     results.set(p.id, { score, contributions, explanation: explain(p, contributions) })
@@ -191,11 +175,11 @@ export function scoreProducts(
 }
 
 /**
- * Thin wrapper for backwards compat: score a single product against the full catalogue.
- * For batch scoring, use scoreProducts() instead.
+ * Convenience: score a single product against a given cohort.
+ * No implicit global — caller must provide the products array.
  */
-export function scoreProduct(p: Product, weights: Record<string, number> = DEFAULT_WEIGHTS): ScoreResult {
-  const map = scoreProducts(PRODUCTS, weights)
+export function scoreOne(p: Product, products: Product[], weights: Record<string, number> = DEFAULT_WEIGHTS): ScoreResult {
+  const map = scoreProducts(products, weights)
   return map.get(p.id) ?? { score: 50, contributions: [], explanation: '' }
 }
 

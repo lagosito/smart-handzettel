@@ -2,7 +2,7 @@ import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useApp, stepStates, STEP_META, CAMPAIGN_LABEL } from '../state/AppState'
 import { DASH_KPIS, RETAILER, TREND_EVENTS } from '../data/mock'
-import { scoreProduct } from '../lib/ai'
+import { scoreOne, scoreProducts } from '../lib/ai'
 import { Badge, Btn, Card, SectionHead, Kpi, ScoreRing, cn } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { formatDE } from '../lib/utils'
@@ -26,7 +26,7 @@ export default function Dashboard() {
   const next = nextStepCopy(state.campaignWeek)[nextIdx === -1 ? 4 : nextIdx]
 
   const top = [...state.products]
-    .map((p) => ({ p, r: scoreProduct(p, state.weights) }))
+    .map((p) => ({ p, r: scoreOne(p, state.products, state.weights) }))
     .sort((a, b) => b.r.score - a.r.score)
     .slice(0, 4)
 

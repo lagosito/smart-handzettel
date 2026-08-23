@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useApp, stepStates, STEP_META, CAMPAIGN_LABEL, approvalChecklist } from '../state/AppState'
 import { Badge, Btn, Card, SectionHead, Stepper, cn } from '../components/ui'
 import { Icon } from '../lib/icons'
-import { pangvSummary, scoreProduct } from '../lib/ai'
+import { pangvSummary, scoreOne, scoreProducts } from '../lib/ai'
 import type { StepState } from '../data/types'
 import { BUNDLES, recipeById } from '../data/mock'
 
@@ -24,7 +24,7 @@ export default function Handzettel() {
   const checks = approvalChecklist(state)
   const okCount = checks.filter((c) => c.state === 'ok').length
   const published = Object.values(state.channels).filter((c) => c.status === 'veroeffentlicht').length
-  const topScore = Math.max(...state.products.map((p) => scoreProduct(p, state.weights).score))
+  const topScore = Math.max(...state.products.map((p) => scoreOne(p, state.products, state.weights).score))
 
   const details: string[] = [
     state.importSt.status === 'done'

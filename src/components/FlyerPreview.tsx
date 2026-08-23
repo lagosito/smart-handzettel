@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import type { Product, Recipe, Bundle as BundleT, SegmentKey } from '../data/types'
 import { SEGMENTS, CATEGORY_STYLE, bundleSingleSum } from '../data/mock'
-import { scoreProduct } from '../lib/ai'
+import { scoreOne, scoreProducts } from '../lib/ai'
 import { cn, discount, formatDE } from '../lib/utils'
 import { useApp } from '../state/AppState'
 import { QRCode } from './ui'
@@ -96,7 +96,7 @@ export default function FlyerPreview({ variant = 'desktop' }: { variant?: 'deskt
   const scored = useMemo(() => {
     const w = state.weights
     return included
-      .map((p) => ({ p, s: scoreProduct(p, w).score, seg: flyer.personalization && p.segments.includes(segment) ? 1 : 0 }))
+      .map((p) => ({ p, s: scoreOne(p, included, w).score, seg: flyer.personalization && p.segments.includes(segment) ? 1 : 0 }))
       .sort((a, b) => (flyer.personalization ? b.seg - a.seg || b.s - a.s : b.s - a.s))
   }, [included, state.weights, flyer.personalization, segment])
 

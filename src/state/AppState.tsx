@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
 import { BUNDLES, CHANNELS, PRODUCTS, RECIPES } from '../data/mock'
 import type { Bundle, CampaignStatus, ChannelState, Product, ProductAsset, Recipe, SegmentKey, StepState, Toast } from '../data/types'
-import { DEFAULT_WEIGHTS, pangvSummary, scoreProduct } from '../lib/ai'
+import { DEFAULT_WEIGHTS, pangvSummary, scoreProducts } from '../lib/ai'
 
 export type FlyerLayout = 'klassisch' | 'editorial' | 'kompakt'
 
@@ -50,7 +50,7 @@ export interface State {
 
 function defaultIncluded() {
   return [...PRODUCTS]
-    .map((p) => ({ p, s: scoreProduct(p, DEFAULT_WEIGHTS).score }))
+    .map((p) => ({ p, s: scoreProducts([p], DEFAULT_WEIGHTS).get(p.id)?.score ?? 50 }))
     .sort((a, b) => b.s - a.s)
     .slice(0, 9)
     .map((x) => x.p.id)

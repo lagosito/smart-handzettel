@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../state/AppState'
-import { pangvCheck, scoreProduct } from '../lib/ai'
+import { pangvCheck, scoreOne, scoreProducts } from '../lib/ai'
 import { Badge, Card, DataTable, Tabs, cn, inputCls } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { discount, formatDE, kfmt } from '../lib/utils'
@@ -83,7 +83,7 @@ export default function Produkte() {
             ]}
             rows={list.map((p) => {
               const pv = pangvCheck(p)
-              const sc = scoreProduct(p, state.weights).score
+              const sc = scoreOne(p, state.products, state.weights).score
               return {
                 id: p.id,
                 ean: <span className="tnum text-zinc-500 text-xs">{p.ean}</span>,

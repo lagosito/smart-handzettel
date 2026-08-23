@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../state/AppState'
 import { SEGMENTS, bundleById, recipeById } from '../data/mock'
-import { pangvSummary, scoreProduct } from '../lib/ai'
+import { pangvSummary, scoreOne, scoreProducts } from '../lib/ai'
 import { canGenerateImage, generateAsset } from '../lib/assets'
 import { AiTag, Badge, Btn, Card, Toggle, cn, inputCls } from '../components/ui'
 import { Icon } from '../lib/icons'
@@ -33,7 +33,7 @@ export default function Builder() {
   const includedScore = useMemo(() => {
     const list = state.products.filter((p) => flyer.included.includes(p.id))
     if (!list.length) return 0
-    return Math.round(list.reduce((s, p) => s + scoreProduct(p, state.weights).score, 0) / list.length)
+    return Math.round(list.reduce((s, p) => s + scoreOne(p, state.products, state.weights).score, 0) / list.length)
   }, [state.products, flyer.included, state.weights])
 
   const marginAvg = useMemo(() => {
@@ -48,7 +48,7 @@ export default function Builder() {
     const out: { icon: string; tone: 'ok' | 'warn' | 'info'; text: string; action?: () => void; actionLabel?: string }[] = []
     const missing = state.products
       .filter((p) => !flyer.included.includes(p.id))
-      .map((p) => ({ p, s: scoreProduct(p, state.weights).score }))
+      .map((p) => ({ p, s: scoreOne(p, state.products, state.weights).score }))
       .sort((a, b) => b.s - a.s)[0]
     if (missing && missing.s >= 88) {
       out.push({
