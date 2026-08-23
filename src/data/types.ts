@@ -130,6 +130,6 @@ export type StepState = 'done' | 'active' | 'attention' | 'locked'
 
 export interface ScoreResult {
   score: number
-  contributions: { key: string; label: string; points: number; pct: number }[]
+  contributions: { key: string; label: string; value: number; points: number; pct: number }[]
   explanation: string
 }
