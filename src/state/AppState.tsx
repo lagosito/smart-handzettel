@@ -57,6 +57,17 @@ function defaultIncluded() {
     .map((x) => x.p.id)
 }
 
+function defaultAssets(): ProductAsset[] {
+  return PRODUCTS.map((p) => ({
+    productId: p.id,
+    src: undefined,
+    source: 'lieferant' as const,
+    symbolbild: false,
+    note: 'Standardproduktbild',
+    updatedAt: '2026-08-22T10:00:00',
+  }))
+}
+
 const initialChannels = (): Record<string, ChannelState> =>
   Object.fromEntries(
     CHANNELS.map((c) => [
@@ -95,7 +106,7 @@ export const initialState: State = {
   approvedAt: null,
   toasts: [],
   trendBoost: null,
-  assets: [],
+  assets: defaultAssets(),
   pangvConfirmations: {},
 }
 
