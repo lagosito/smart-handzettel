@@ -63,7 +63,7 @@ export default function Trends() {
           <SectionHead title="Saisonale Nachfrage" sub="Nachfrage-Index der letzten und nächsten Kalenderwochen · Region Nord" right={<Badge tone="accent">KW {state.campaignWeek} markiert</Badge>} />
           <LineChart labels={SEASONAL.labels} series={SEASONAL.series} height={230} />
           <div className="mt-3 rounded-lg bg-zinc-50 border border-zinc-200 px-3.5 py-2.5 text-[11.5px] text-zinc-600 leading-relaxed">
-            <span className="font-bold text-zinc-900">Lesart der KI:</span> Die Grill-Saison läuft aus – letztes Hoch in KW ${state.campaignWeek} nutzen (Hitzewelle), ab KW 36 auf Backwaren & Obst priorisieren.
+            <span className="font-bold text-zinc-900">Lesart der KI:</span> Die Grill-Saison läuft aus – letztes Hoch in KW {state.campaignWeek} nutzen (Hitzewelle), ab KW 36 auf Backwaren & Obst priorisieren.
           </div>
         </Card>
 

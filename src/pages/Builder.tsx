@@ -102,7 +102,7 @@ export default function Builder() {
             <h1 className="text-[22px] font-bold tracking-tight text-zinc-900">Flyer Builder</h1>
             <AiTag />
           </div>
-          <p className="text-[13px] text-zinc-500 mt-0.5">Schritt 3 von 5 · Die KI hat den Entwurf für KW ${state.campaignWeek} vorbereitet – Sie behalten die Kontrolle</p>
+          <p className="text-[13px] text-zinc-500 mt-0.5">Schritt 3 von 5 · Die KI hat den Entwurf für KW {state.campaignWeek} vorbereitet – Sie behalten die Kontrolle</p>
         </div>
         <div className="flex gap-2 items-center flex-wrap">
           <div className="inline-flex rounded-lg border border-zinc-300 bg-white p-0.5">

@@ -26,7 +26,7 @@ export default function Assistant({ compact }: { compact?: boolean }) {
     {
       id: 0,
       role: 'ai',
-      text: 'Guten Tag! Ich bin Ihr Einkaufsassistent für den Handzettel der KW ${state.campaignWeek}. Ich kenne alle aktuellen Angebote, Rezepte und Bundles – wie kann ich helfen?',
+      text: `Guten Tag! Ich bin Ihr Einkaufsassistent für den Handzettel der KW ${state.campaignWeek}. Ich kenne alle aktuellen Angebote, Rezepte und Bundles – wie kann ich helfen?`,
     },
   ])
   const [input, setInput] = useState('')

@@ -126,7 +126,7 @@ export default function ProduktDetail() {
                   <Sparkline points={velHistory} width={170} height={52} />
                   <div className="text-[11px] text-zinc-400 leading-snug">
                     Trend: <span className="font-bold text-emerald-600">steigend</span>
-                    <br />unterstützt durch Hitzewelle KW ${state.campaignWeek}
+                    <br />unterstützt durch Hitzewelle KW {state.campaignWeek}
                   </div>
                 </div>
               </div>
@@ -186,7 +186,7 @@ export default function ProduktDetail() {
               </div>
               {r.score >= 85 && (
                 <div className="mt-3.5 rounded-lg bg-white border border-accent-200 px-3 py-2 text-[11.5px] text-accent-900">
-                  <span className="font-bold">Empfehlung:</span> Auf Seite 1 platzieren – prognostizierter Mehrumsatz +{formatDE(p.velocity * (p.price - p.promo) * 0.4)} € in KW ${state.campaignWeek}.
+                  <span className="font-bold">Empfehlung:</span> Auf Seite 1 platzieren – prognostizierter Mehrumsatz +{formatDE(p.velocity * (p.price - p.promo) * 0.4)} € in KW {state.campaignWeek}.
                 </div>
               )}
             </Card>

@@ -129,7 +129,7 @@ export default function Export() {
     }
     setBusy(null)
     setBusyAll(false)
-    notify('Kampagne KW ${state.campaignWeek} auf allen 9 Kanälen veröffentlicht. 🎉')
+    notify(`Kampagne KW ${state.campaignWeek} auf allen 9 Kanälen veröffentlicht. 🎉`)
   }
 
   return (
@@ -160,7 +160,7 @@ export default function Export() {
         <div className="rounded-xl border border-sky-300 bg-sky-50 px-4 py-3.5 flex flex-wrap items-center gap-3">
           <Icon name="lock" size={17} className="text-sky-600" />
           <div className="flex-1 text-[13px] text-sky-900 leading-snug">
-            <span className="font-bold">Die Veröffentlichung ist gesperrt.</span> Alle Kanäle sind vorbereitet und warten auf die Freigabe der Kampagne KW ${state.campaignWeek} (Schritt 4).
+            <span className="font-bold">Die Veröffentlichung ist gesperrt.</span> Alle Kanäle sind vorbereitet und warten auf die Freigabe der Kampagne KW {state.campaignWeek} (Schritt 4).
           </div>
           <Btn size="sm" onClick={() => nav('/kampagnen?tab=freigabe')}>
             <Icon name="shield" size={14} />
@@ -175,7 +175,7 @@ export default function Export() {
             <Icon name="checkc" size={20} />
           </div>
           <div className="flex-1 min-w-56">
-            <div className="font-bold">Kampagne KW ${state.campaignWeek} ist live</div>
+            <div className="font-bold">Kampagne KW {state.campaignWeek} ist live</div>
             <div className="text-[12px] text-zinc-400">Veröffentlicht am {state.publishedAt} · {publishedCount}/9 Kanäle aktiv</div>
           </div>
           <Btn variant="soft" className="!bg-white !text-accent-900 !border-white" onClick={() => nav('/analytics')}>

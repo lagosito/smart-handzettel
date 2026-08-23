@@ -175,7 +175,7 @@ export default function Rezepte() {
       </div>
 
       {/* Generator-Modal */}
-      <Modal open={genOpen} onClose={() => !generating && setGenOpen(false)} title="Rezept mit KI erstellen" sub="Die KI kombiniert Aktionsartikel der KW ${state.campaignWeek} zu einem verkaufsfördernden Rezept">
+      <Modal open={genOpen} onClose={() => !generating && setGenOpen(false)} title="Rezept mit KI erstellen" sub={`Die KI kombiniert Aktionsartikel der KW ${state.campaignWeek} zu einem verkaufsfördernden Rezept`}>
         <div className="p-6">
           {!generating ? (
             <>
