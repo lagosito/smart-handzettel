@@ -5,6 +5,7 @@ import { CAMPAIGNS } from '../data/mock'
 import { AiTag, Badge, Btn, Card, DataTable, Modal, SectionHead, Tabs, cn, inputCls } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { recipeById, bundleById } from '../data/mock'
+import { pangvCheck } from '../lib/ai'
 
 export default function Kampagnen() {
   const { state, dispatch, notify } = useApp()
@@ -18,6 +19,12 @@ export default function Kampagnen() {
   const allOk = checks.every((c) => c.state === 'ok')
   const approved = state.campaignStatus === 'freigegeben' || state.campaignStatus === 'veroeffentlicht'
   const camp = CAMPAIGN_LABEL[state.campaignStatus]
+
+  // PAngV gate: check for kritisch items and unconfirmed offen items
+  const pangvResults = state.products.map((p) => pangvCheck(p))
+  const hasKritisch = pangvResults.some((r) => r.items.some((i) => i.level === 'kritisch'))
+  const unconfirmedOffen = pangvResults.flatMap((r) => r.items.filter((i) => i.level === 'offen' && i.requiresConfirmation && !i.confirmedBy))
+  const canFreigeben = allOk && !hasKritisch && unconfirmedOffen.length === 0
 
   const confirmRow = (key: string) => {
     if (key === 'recipe') {
@@ -142,8 +149,9 @@ export default function Kampagnen() {
                 </Btn>
               </div>
             ) : (
+              <>
               <div className="flex flex-wrap gap-2.5 mt-5 pt-4 border-t border-zinc-100">
-                <Btn onClick={approve} disabled={!allOk} size="lg">
+                <Btn onClick={approve} disabled={!canFreigeben} size="lg">
                   <Icon name="shield" size={16} />
                   Freigeben
                 </Btn>
@@ -151,8 +159,16 @@ export default function Kampagnen() {
                   <Icon name="edit" size={15} />
                   Änderungen anfordern
                 </Btn>
-                {!allOk && <span className="self-center text-[11.5px] text-zinc-400">Freigabe erst möglich, wenn alle Prüfpunkte bestätigt sind.</span>}
+                {!canFreigeben && (
+                  <span className="self-center text-[11.5px] text-zinc-400">
+                    {hasKritisch ? 'Kritische PAngV-Punkte müssen behoben werden.' :
+                     unconfirmedOffen.length > 0 ? `${unconfirmedOffen.length} offene Punkt(e) müssen manuell bestätigt werden.` :
+                     'Freigabe erst möglich, wenn alle Prüfpunkte bestätigt sind.'}
+                  </span>
+                )}
               </div>
+              <p className="text-[10px] text-zinc-400 mt-3">Automatische Vorprüfung. Ersetzt keine rechtliche Beratung.</p>
+              </>
             )}
             {state.approval.note && !approved && (
               <div className="mt-3 rounded-lg bg-amber-50 border border-amber-300 px-3.5 py-3 text-[12px] text-amber-900">
