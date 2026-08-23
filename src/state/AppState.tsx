@@ -45,6 +45,7 @@ export interface State {
   toasts: Toast[]
   trendBoost: string | null
   assets: ProductAsset[]
+  pangvConfirmations: Record<string, string>
 }
 
 function defaultIncluded() {
@@ -94,6 +95,7 @@ export const initialState: State = {
   toasts: [],
   trendBoost: null,
   assets: [],
+  pangvConfirmations: {},
 }
 
 type Action =
@@ -117,6 +119,7 @@ type Action =
   | { type: 'trend/boost'; id: string | null }
   | { type: 'campaignWeek/set'; week: string }
   | { type: 'asset/set'; asset: ProductAsset }
+  | { type: 'pangv/confirm'; key: string }
   | { type: 'reset' }
 
 function reducer(s: State, a: Action): State {
@@ -174,6 +177,16 @@ function reducer(s: State, a: Action): State {
       const existing = s.assets.findIndex((ea) => ea.productId === a.asset.productId)
       const newAssets = existing >= 0 ? s.assets.map((ea, i) => i === existing ? a.asset : ea) : [...s.assets, a.asset]
       return { ...s, assets: newAssets }
+    }
+    case 'pangv/confirm': {
+      const isConfirmed = s.pangvConfirmations[a.key]
+      const newConfs = { ...s.pangvConfirmations }
+      if (isConfirmed) {
+        delete newConfs[a.key]
+      } else {
+        newConfs[a.key] = new Date().toLocaleString('de-DE')
+      }
+      return { ...s, pangvConfirmations: newConfs }
     }
     case 'reset':
       return { ...initialState, weights: { ...DEFAULT_WEIGHTS }, channels: initialChannels(), flyer: { ...initialState.flyer, included: defaultIncluded() } }

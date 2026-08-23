@@ -5,7 +5,7 @@ import { CAMPAIGNS } from '../data/mock'
 import { AiTag, Badge, Btn, Card, DataTable, Modal, SectionHead, Tabs, cn, inputCls } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { recipeById, bundleById } from '../data/mock'
-import { pangvCheck } from '../lib/ai'
+import { pangvCheck, pangvCampaignCheck } from '../lib/ai'
 
 export default function Kampagnen() {
   const { state, dispatch, notify } = useApp()
@@ -22,8 +22,10 @@ export default function Kampagnen() {
 
   // PAngV gate: check for kritisch items and unconfirmed offen items
   const pangvResults = state.products.map((p) => pangvCheck(p))
-  const hasKritisch = pangvResults.some((r) => r.items.some((i) => i.level === 'kritisch'))
-  const unconfirmedOffen = pangvResults.flatMap((r) => r.items.filter((i) => i.level === 'offen' && i.requiresConfirmation && !i.confirmedBy))
+  const campaignCheck = pangvCampaignCheck()
+  const allPangvItems = [...campaignCheck.items, ...pangvResults.flatMap((r) => r.items)]
+  const hasKritisch = allPangvItems.some((i) => i.level === 'kritisch')
+  const unconfirmedOffen = allPangvItems.filter((i) => i.level === 'offen' && i.requiresConfirmation && !state.pangvConfirmations[`${i.label}:${i.detail}`])
   const canFreigeben = allOk && !hasKritisch && unconfirmedOffen.length === 0
 
   const confirmRow = (key: string) => {
@@ -136,6 +138,32 @@ export default function Kampagnen() {
                 </div>
               ))}
             </div>
+
+            {/* PAngV offene Punkte */}
+            {unconfirmedOffen.length > 0 && !approved && (
+              <div className="mt-4 pt-4 border-t border-zinc-100">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2">Offene PAngV-Punkte ({unconfirmedOffen.length})</div>
+                <div className="space-y-1.5">
+                  {[...new Map(unconfirmedOffen.map((i) => [`${i.label}:${i.detail}`, i])).values()].map((item) => {
+                    const confKey = `${item.label}:${item.detail}`
+                    const isConfirmed = !!state.pangvConfirmations[confKey]
+                    return (
+                      <label key={confKey} className="flex items-start gap-2 py-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isConfirmed}
+                          onChange={() => dispatch({ type: 'pangv/confirm', key: confKey })}
+                          className="mt-0.5 accent-accent-600 shrink-0"
+                        />
+                        <span className="text-[12px] text-zinc-600">
+                          <span className="font-medium text-zinc-800">{item.label}:</span> {item.detail}
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {approved ? (
               <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-300 px-4 py-4 flex flex-wrap items-center gap-3">

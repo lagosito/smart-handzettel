@@ -329,13 +329,36 @@ export function pangvCheck(p: Product): { status: PangvLevel; items: PangvIssue[
     })
   }
 
-  // MwSt.-Hinweis: we assume it exists, can't parse footer
-  items.push({
-    label: 'MwSt.-Hinweis',
-    detail: '„Alle Preise inkl. gesetzlicher MwSt." im Footer – Annahme, nicht verifiziert.',
-    level: 'offen',
-    requiresConfirmation: true,
-  })
+  const status: PangvLevel = items.some((i) => i.level === 'kritisch')
+    ? 'kritisch'
+    : items.some((i) => i.level === 'warnung')
+      ? 'warnung'
+      : items.some((i) => i.level === 'offen')
+        ? 'offen'
+        : 'ok'
+
+  return { status, items }
+}
+
+/**
+ * Campaign-level PAngV checks (layout/footer, not per-product).
+ * MwSt.-Hinweis and similar items that apply once to the whole flyer.
+ */
+export function pangvCampaignCheck(): { status: PangvLevel; items: PangvIssue[] } {
+  const items: PangvIssue[] = [
+    {
+      label: 'MwSt.-Hinweis',
+      detail: '„Alle Preise inkl. gesetzlicher MwSt." im Footer – Annahme, nicht verifiziert.',
+      level: 'offen',
+      requiresConfirmation: true,
+    },
+    {
+      label: 'Grundpreise gemäß § 2 PAngV',
+      detail: 'Grundpreise im Layout sichtbar und lesbar – Darstellung prüfen.',
+      level: 'offen',
+      requiresConfirmation: true,
+    },
+  ]
 
   const status: PangvLevel = items.some((i) => i.level === 'kritisch')
     ? 'kritisch'
