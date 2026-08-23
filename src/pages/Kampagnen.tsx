@@ -22,7 +22,7 @@ export default function Kampagnen() {
   const camp = CAMPAIGN_LABEL[state.campaignStatus]
 
   // PAngV gate: check for kritisch items and unconfirmed offen items
-  const pangvResults = state.products.map((p) => pangvCheck(p))
+  const pangvResults = state.products.map((p) => ({ ...pangvCheck(p), productId: p.id }))
   const campaignCheck = pangvCampaignCheck()
   const allPangvItems = [...campaignCheck.items, ...pangvResults.flatMap((r) => r.items)]
   const hasKritisch = allPangvItems.some((i) => i.level === 'kritisch')
@@ -140,31 +140,68 @@ export default function Kampagnen() {
               ))}
             </div>
 
-            {/* PAngV offene Punkte */}
-            {unconfirmedOffen.length > 0 && !approved && (
-              <div className="mt-4 pt-4 border-t border-zinc-100">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2">Offene PAngV-Punkte ({unconfirmedOffen.length})</div>
-                <div className="space-y-1.5">
-                  {[...new Map(unconfirmedOffen.map((i) => [`${i.label}:${i.detail}`, i])).values()].map((item) => {
-                    const confKey = `${item.label}:${item.detail}`
-                    const isConfirmed = !!state.pangvConfirmations[confKey]
-                    return (
-                      <label key={confKey} className="flex items-start gap-2 py-1.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={isConfirmed}
-                          onChange={() => dispatch({ type: 'pangv/confirm', key: confKey })}
-                          className="mt-0.5 accent-accent-600 shrink-0"
-                        />
-                        <span className="text-[12px] text-zinc-600">
-                          <span className="font-medium text-zinc-800">{item.label}:</span> {item.detail}
-                        </span>
-                      </label>
-                    )
-                  })}
+            {/* PAngV offene Punkte — gruppiert nach Label */}
+            {(() => {
+              // Group open items by label, collect affected product IDs
+              const grouped = new Map<string, { item: typeof unconfirmedOffen[0]; productIds: string[] }>()
+              for (const item of unconfirmedOffen) {
+                const existing = grouped.get(item.label)
+                if (existing) {
+                  // Same label, different detail = same check type, accumulate
+                } else {
+                  grouped.set(item.label, { item, productIds: [] })
+                }
+              }
+              // Collect product IDs per group from all pangv results
+              for (const r of pangvResults) {
+                for (const item of r.items) {
+                  if (item.level === 'offen' && item.requiresConfirmation) {
+                    const group = grouped.get(item.label)
+                    if (group && !group.productIds.includes(r.productId)) {
+                      group.productIds.push(r.productId)
+                    }
+                  }
+                }
+              }
+              // Also add campaign-level items
+              for (const item of campaignCheck.items) {
+                if (item.level === 'offen' && item.requiresConfirmation) {
+                  if (!grouped.has(item.label)) {
+                    grouped.set(item.label, { item, productIds: [] })
+                  }
+                }
+              }
+              const groups = [...grouped.entries()]
+              if (groups.length === 0 || approved) return null
+              return (
+                <div className="mt-4 pt-4 border-t border-zinc-100">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2">Offene PAngV-Punkte</div>
+                  <div className="space-y-1.5">
+                    {groups.map(([label, { item, productIds }]) => {
+                      const confKey = label
+                      const isConfirmed = !!state.pangvConfirmations[confKey]
+                      const scope = productIds.length > 0 ? ` für ${productIds.length} Artikel` : ''
+                      return (
+                        <label key={confKey} className="flex items-start gap-2 py-1.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isConfirmed}
+                            onChange={() => dispatch({ type: 'pangv/confirm', key: confKey, productIds })}
+                            className="mt-0.5 accent-accent-600 shrink-0"
+                          />
+                          <span className="text-[12px] text-zinc-600">
+                            <span className="font-medium text-zinc-800">{label}{scope}:</span> {item.detail}
+                            {isConfirmed && state.pangvConfirmations[confKey] && (
+                              <span className="text-[10px] text-zinc-400 ml-1">✓ bestätigt am {state.pangvConfirmations[confKey].at}</span>
+                            )}
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )
+            })()}
 
             {approved ? (
               <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-300 px-4 py-4 flex flex-wrap items-center gap-3">

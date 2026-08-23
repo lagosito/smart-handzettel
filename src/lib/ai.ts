@@ -220,7 +220,6 @@ export interface PangvIssue {
   detail: string
   level: PangvLevel
   requiresConfirmation: boolean
-  confirmedBy?: string
 }
 
 export function pangvCheck(p: Product): { status: PangvLevel; items: PangvIssue[] } {

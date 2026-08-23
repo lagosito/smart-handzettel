@@ -46,7 +46,7 @@ export interface State {
   toasts: Toast[]
   trendBoost: string | null
   assets: ProductAsset[]
-  pangvConfirmations: Record<string, string>
+  pangvConfirmations: Record<string, { at: string; productIds: string[] }>
 }
 
 function defaultIncluded() {
@@ -131,7 +131,7 @@ type Action =
   | { type: 'trend/boost'; id: string | null }
   | { type: 'campaignWeek/set'; week: string }
   | { type: 'asset/set'; asset: ProductAsset }
-  | { type: 'pangv/confirm'; key: string }
+  | { type: 'pangv/confirm'; key: string; productIds: string[] }
   | { type: 'reset' }
 
 function reducer(s: State, a: Action): State {
@@ -196,7 +196,7 @@ function reducer(s: State, a: Action): State {
       if (isConfirmed) {
         delete newConfs[a.key]
       } else {
-        newConfs[a.key] = new Date().toLocaleString('de-DE')
+        newConfs[a.key] = { at: new Date().toLocaleString('de-DE'), productIds: a.productIds }
       }
       return { ...s, pangvConfirmations: newConfs }
     }
