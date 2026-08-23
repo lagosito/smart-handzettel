@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
 import { BUNDLES, CHANNELS, PRODUCTS, RECIPES } from '../data/mock'
-import type { Bundle, CampaignStatus, ChannelState, Product, Recipe, SegmentKey, StepState, Toast } from '../data/types'
+import type { Bundle, CampaignStatus, ChannelState, Product, ProductAsset, Recipe, SegmentKey, StepState, Toast } from '../data/types'
 import { DEFAULT_WEIGHTS, pangvSummary, scoreProduct } from '../lib/ai'
 
 export type FlyerLayout = 'klassisch' | 'editorial' | 'kompakt'
@@ -44,6 +44,7 @@ export interface State {
   approvedAt: string | null
   toasts: Toast[]
   trendBoost: string | null
+  assets: ProductAsset[]
 }
 
 function defaultIncluded() {
@@ -92,6 +93,7 @@ export const initialState: State = {
   approvedAt: null,
   toasts: [],
   trendBoost: null,
+  assets: [],
 }
 
 type Action =
@@ -114,6 +116,7 @@ type Action =
   | { type: 'bundle/add'; bundle: Bundle }
   | { type: 'trend/boost'; id: string | null }
   | { type: 'campaignWeek/set'; week: string }
+  | { type: 'asset/set'; asset: ProductAsset }
   | { type: 'reset' }
 
 function reducer(s: State, a: Action): State {
@@ -167,6 +170,11 @@ function reducer(s: State, a: Action): State {
       return { ...s, trendBoost: a.id }
     case 'campaignWeek/set':
       return { ...s, campaignWeek: a.week }
+    case 'asset/set': {
+      const existing = s.assets.findIndex((ea) => ea.productId === a.asset.productId)
+      const newAssets = existing >= 0 ? s.assets.map((ea, i) => i === existing ? a.asset : ea) : [...s.assets, a.asset]
+      return { ...s, assets: newAssets }
+    }
     case 'reset':
       return { ...initialState, weights: { ...DEFAULT_WEIGHTS }, channels: initialChannels(), flyer: { ...initialState.flyer, included: defaultIncluded() } }
     default:

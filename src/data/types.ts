@@ -133,3 +133,15 @@ export interface ScoreResult {
   contributions: { key: string; label: string; value: number; points: number; pct: number }[]
   explanation: string
 }
+
+// ── Asset Provenance ─────────────────────────────────────────────
+export type AssetSource = 'lieferant' | 'optimiert' | 'ki'
+
+export interface ProductAsset {
+  productId: string
+  src?: string
+  source: AssetSource
+  symbolbild: boolean
+  note?: string
+  updatedAt: string
+}

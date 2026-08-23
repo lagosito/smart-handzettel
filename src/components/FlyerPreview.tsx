@@ -40,7 +40,7 @@ function Starburst({ pct, size = 54 }: { pct: number; size?: number }) {
   )
 }
 
-function ProductVisual({ p, className, emojiSize = 44 }: { p: Product; className?: string; emojiSize?: number }) {
+function ProductVisual({ p, className, emojiSize = 44, asset }: { p: Product; className?: string; emojiSize?: number; asset?: import('../data/types').ProductAsset }) {
   const st = CATEGORY_STYLE[p.category]
   return (
     <div className={cn('relative flex items-center justify-center overflow-hidden', className)} style={{ background: st.soft }}>
@@ -48,15 +48,18 @@ function ProductVisual({ p, className, emojiSize = 44 }: { p: Product; className
       {p.bio && (
         <span className="absolute top-1.5 left-1.5 text-[8.5px] font-bold tracking-wide bg-emerald-600 text-white rounded px-1 py-0.5">BIO</span>
       )}
+      {asset?.symbolbild && (
+        <span className="absolute bottom-1 left-1 text-[7px] font-bold tracking-wide bg-zinc-800/80 text-white rounded px-1 py-0.5 print:bg-zinc-800 print:text-white">Symbolbild</span>
+      )}
     </div>
   )
 }
 
-function FlyerProductCard({ p, variant }: { p: Product; variant: 'desktop' | 'mobile' }) {
+function FlyerProductCard({ p, variant, asset }: { p: Product; variant: 'desktop' | 'mobile'; asset?: import('../data/types').ProductAsset }) {
   const d = discount(p.price, p.promo)
   return (
     <div className={cn('relative rounded-lg border border-zinc-200 bg-white overflow-hidden flex flex-col hover:shadow-lg transition-shadow', variant === 'mobile' && 'text-sm')}>
-      <ProductVisual p={p} className="aspect-[4/3]" emojiSize={variant === 'mobile' ? 34 : 42} />
+      <ProductVisual p={p} className="aspect-[4/3]" emojiSize={variant === 'mobile' ? 34 : 42} asset={asset} />
       <div className="absolute top-1.5 right-1.5">
         <Starburst pct={d} size={variant === 'mobile' ? 42 : 50} />
       </div>
@@ -109,6 +112,8 @@ export default function FlyerPreview({ variant = 'desktop' }: { variant?: 'deskt
   }, [flyer.personalization, flyer.heroId, segDef, included, scored])
 
   const grid = scored.filter((x) => x.p.id !== hero?.id).map((x) => x.p)
+
+  const assetFor = (id: string) => state.assets.find((a) => a.productId === id)
 
   const recipe: Recipe | undefined = allRecipes.find((r) => r.id === flyer.recipeId)
   const bundle: BundleT | undefined = allBundles.find((b) => b.id === flyer.bundleId)
@@ -201,7 +206,7 @@ export default function FlyerPreview({ variant = 'desktop' }: { variant?: 'deskt
         {layout === 'kompakt' || variant === 'mobile' ? (
           <div className={cn('grid', gridCols)}>
             {grid.slice(0, variant === 'mobile' ? 6 : 12).map((p) => (
-              <FlyerProductCard key={p.id} p={p} variant={variant} />
+              <FlyerProductCard key={p.id} p={p} variant={variant} asset={assetFor(p.id)} />
             ))}
           </div>
         ) : (
@@ -214,7 +219,7 @@ export default function FlyerPreview({ variant = 'desktop' }: { variant?: 'deskt
                 </div>
                 <div className={cn('grid', gridCols)}>
                   {items.map((p) => (
-                    <FlyerProductCard key={p.id} p={p} variant={variant} />
+                    <FlyerProductCard key={p.id} p={p} variant={variant} asset={assetFor(p.id)} />
                   ))}
                 </div>
               </div>
