@@ -32,7 +32,7 @@ export default function Kampagnen() {
 
   const approve = () => {
     dispatch({ type: 'campaign/approve' })
-    notify('Handzettel KW 35 freigegeben – Export ist jetzt entsperrt. 🎉')
+    notify('Handzettel KW ${state.campaignWeek} freigegeben – Export ist jetzt entsperrt. 🎉')
   }
 
   const requestChanges = () => {
@@ -49,11 +49,11 @@ export default function Kampagnen() {
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-[22px] font-bold tracking-tight text-zinc-900">Kampagnen</h1>
-            <Badge tone={camp.tone}>KW 35: {camp.label}</Badge>
+            <Badge tone={camp.tone}>KW {state.campaignWeek}: {camp.label}</Badge>
           </div>
           <p className="text-[13px] text-zinc-500 mt-0.5">Wochenkampagnen planen, prüfen und freigeben</p>
         </div>
-        <Tabs active={tab} onChange={(k) => setParams({ tab: k === 'liste' ? 'liste' : 'freigabe' })} tabs={[{ key: 'liste', label: 'Übersicht' }, { key: 'freigabe', label: 'Freigabe KW 35' }]} />
+        <Tabs active={tab} onChange={(k) => setParams({ tab: k === 'liste' ? 'liste' : 'freigabe' })} tabs={[{ key: 'liste', label: 'Übersicht' }, { key: 'freigabe', label: 'Freigabe KW ${state.campaignWeek}' }]} />
       </div>
 
       {tab === 'liste' && (
@@ -96,7 +96,7 @@ export default function Kampagnen() {
         <div className="grid lg:grid-cols-[1fr_360px] gap-4 items-start">
           <Card>
             <SectionHead
-              title="Freigabe: Handzettel KW 35"
+              title="Freigabe: Handzettel KW ${state.campaignWeek}"
               sub="Schritt 4 von 5 · Alle Prüfpunkte – transparent und nachvollziehbar"
               right={<Badge tone={approved ? 'ok' : allOk ? 'accent' : 'info'}>{approved ? 'Freigegeben' : allOk ? 'Bereit zur Freigabe' : `${checks.filter((c) => c.state === 'ok').length}/${checks.length} bestätigt`}</Badge>}
             />
@@ -163,7 +163,7 @@ export default function Kampagnen() {
 
           <div className="space-y-4">
             <Card>
-              <SectionHead title="Zusammenfassung KW 35" sub="Was genau freigegeben wird" />
+              <SectionHead title="Zusammenfassung KW ${state.campaignWeek}" sub="Was genau freigegeben wird" />
               <div className="space-y-2.5 text-[12.5px]">
                 <div className="flex justify-between"><span className="text-zinc-500">Angebote</span><span className="font-bold tnum">{state.flyer.included.length}</span></div>
                 <div className="flex justify-between"><span className="text-zinc-500">Rezept</span><span className="font-semibold truncate ml-4 text-zinc-800">{recipeById(state.flyer.recipeId)?.title ?? '–'}</span></div>

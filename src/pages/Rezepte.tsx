@@ -36,8 +36,8 @@ export default function Rezepte() {
         window.clearInterval(t)
         const recipe: Recipe = {
           id: 'ki-' + Date.now(),
-          title: s.title + ' (KW 35)',
-          desc: `KI-generiert aus den aktuellen Aktionsartikeln der KW 35 – Variante ${s.label}.`,
+          title: s.title + ' (KW ' + state.campaignWeek + ')',
+          desc: `KI-generiert aus den aktuellen Aktionsartikeln der KW ${state.campaignWeek} – Variante ${s.label}.`,
           time: s.time,
           difficulty: 'Einfach',
           servings: 4,
@@ -175,7 +175,7 @@ export default function Rezepte() {
       </div>
 
       {/* Generator-Modal */}
-      <Modal open={genOpen} onClose={() => !generating && setGenOpen(false)} title="Rezept mit KI erstellen" sub="Die KI kombiniert Aktionsartikel der KW 35 zu einem verkaufsfördernden Rezept">
+      <Modal open={genOpen} onClose={() => !generating && setGenOpen(false)} title="Rezept mit KI erstellen" sub="Die KI kombiniert Aktionsartikel der KW ${state.campaignWeek} zu einem verkaufsfördernden Rezept">
         <div className="p-6">
           {!generating ? (
             <>

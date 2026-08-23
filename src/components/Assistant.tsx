@@ -26,7 +26,7 @@ export default function Assistant({ compact }: { compact?: boolean }) {
     {
       id: 0,
       role: 'ai',
-      text: 'Guten Tag! Ich bin Ihr Einkaufsassistent für den Handzettel der KW 35. Ich kenne alle aktuellen Angebote, Rezepte und Bundles – wie kann ich helfen?',
+      text: 'Guten Tag! Ich bin Ihr Einkaufsassistent für den Handzettel der KW ${state.campaignWeek}. Ich kenne alle aktuellen Angebote, Rezepte und Bundles – wie kann ich helfen?',
     },
   ])
   const [input, setInput] = useState('')
@@ -92,7 +92,7 @@ export default function Assistant({ compact }: { compact?: boolean }) {
       }
     }
     if (/hallo|guten tag|moin|hi$/.test(t)) {
-      return { id: seq++, role: 'ai', text: `Moin! In KW 35 gibt es ${state.products.length} Top-Angebote – gefiltert für ${seg.label}. Fragen Sie mich gern nach Rezepten, Budgets oder dem Grillwetter.` }
+      return { id: seq++, role: 'ai', text: `Moin! In KW ${state.campaignWeek} gibt es ${state.products.length} Top-Angebote – gefiltert für ${seg.label}. Fragen Sie mich gern nach Rezepten, Budgets oder dem Grillwetter.` }
     }
     return {
       id: seq++,

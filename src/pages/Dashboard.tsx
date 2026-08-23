@@ -8,10 +8,10 @@ import { Icon } from '../lib/icons'
 import { formatDE } from '../lib/utils'
 
 const NEXT_STEP_COPY: { title: string; desc: string; cta: string }[] = [
-  { title: 'Aktionsdaten für KW 35 importieren', desc: 'Artikel, Preise und Bestände aus Excel, Sheets oder SAP übernehmen und validieren.', cta: 'Daten importieren' },
+  { title: 'Aktionsdaten für KW ${state.campaignWeek} importieren', desc: 'Artikel, Preise und Bestände aus Excel, Sheets oder SAP übernehmen und validieren.', cta: 'Daten importieren' },
   { title: 'KI-Ranking prüfen & bestätigen', desc: 'Die KI hat alle Artikel bewertet. Gewichtung anpassen und Top-Auswahl übernehmen.', cta: 'Ranking öffnen' },
   { title: 'Handzettel im Builder finalisieren', desc: 'Layout, Hero-Produkt, Rezept & Bundle prüfen – inklusive Segment-Personalisierung.', cta: 'Zum Flyer Builder' },
-  { title: 'Kampagne KW 35 freigeben', desc: 'Checkliste bestätigen: Produkte, Preise, PAngV, Bilder, Rezepte und Bundles.', cta: 'Zur Freigabe' },
+  { title: 'Kampagne KW ${state.campaignWeek} freigeben', desc: 'Checkliste bestätigen: Produkte, Preise, PAngV, Bilder, Rezepte und Bundles.', cta: 'Zur Freigabe' },
   { title: 'Kampagne veröffentlichen', desc: 'Ein Klick: Print-PDF, Web, App, E-Mail, Push, Social, OOH, DooH & In-Store.', cta: 'Zum Export' },
 ]
 
@@ -67,7 +67,7 @@ export default function Dashboard() {
               <span className="text-[11px] text-zinc-400">{doneCount}/5 Schritte abgeschlossen</span>
             </div>
             <div className="mt-2 flex items-baseline gap-3 flex-wrap">
-              <span className="text-3xl font-bold tracking-tight">Handzettel KW 35</span>
+              <span className="text-3xl font-bold tracking-tight">Handzettel KW ${state.campaignWeek}</span>
               <span className="text-sm text-zinc-400 tnum">{RETAILER.campaign.periodLong}</span>
             </div>
             <p className="text-[13px] text-zinc-400 mt-2 max-w-xl leading-relaxed">
@@ -169,7 +169,7 @@ export default function Dashboard() {
         {/* Trend-Signale */}
         <Card>
           <SectionHead
-            title="Trend-Signale für KW 35"
+            title="Trend-Signale für KW ${state.campaignWeek}"
             sub="Wetter, Events & Nachfragespitzen"
             right={
               <Link to="/trends" className="text-xs font-semibold text-accent-700 hover:text-accent-800 inline-flex items-center gap-1">

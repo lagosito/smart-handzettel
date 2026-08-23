@@ -37,7 +37,7 @@ export default function Produkte() {
         <div>
           <h1 className="text-[22px] font-bold tracking-tight text-zinc-900">Produkte</h1>
           <p className="text-[13px] text-zinc-500 mt-0.5">
-            {state.products.length} Aktionsartikel für KW 35 · Quelle: {state.importSt.source ?? 'Stammsortiment (Demo)'}
+            {state.products.length} Aktionsartikel für KW ${state.campaignWeek} · Quelle: {state.importSt.source ?? 'Stammsortiment (Demo)'}
             {state.importSt.at ? ` · Import: ${state.importSt.at}` : ''}
           </p>
         </div>

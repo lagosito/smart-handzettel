@@ -147,7 +147,7 @@ export default function FlyerPreview({ variant = 'desktop' }: { variant?: 'deskt
             </div>
           </div>
           <div className="text-right leading-none">
-            <div className="text-[10px] font-semibold text-accent-200">KW 35</div>
+            <div className="text-[10px] font-semibold text-accent-200">KW {state.campaignWeek}</div>
             <div className={cn('font-bold tnum', variant === 'mobile' ? 'text-[10px]' : 'text-[11.5px]')}>24.08. – 29.08.26</div>
           </div>
         </div>
@@ -299,7 +299,7 @@ export default function FlyerPreview({ variant = 'desktop' }: { variant?: 'deskt
             <div className={cn('font-extrabold leading-tight', variant === 'mobile' ? 'text-[13px]' : 'text-[15px]')}>Alle Angebote auch online & in der App</div>
             <div className="text-[10.5px] text-accent-300 mt-0.5">Jetzt scannen · persönliche Angebote sichern · Merkliste anlegen</div>
             <div className="text-[8.5px] text-zinc-500 mt-2 leading-snug">
-              *Alle Preise inkl. gesetzlicher MwSt., zzgl. Pfand. Grundpreise gemäß § 2 PAngV. Angebote gültig {flyer.subline.includes('24.08.') ? '24.08.–29.08.2026' : 'KW 35'}, nur solange der Vorrat reicht.
+              *Alle Preise inkl. gesetzlicher MwSt., zzgl. Pfand. Grundpreise gemäß § 2 PAngV. Angebote gültig {flyer.subline.includes('24.08.') ? '24.08.–29.08.2026' : 'KW ' + state.campaignWeek}, nur solange der Vorrat reicht.
             </div>
           </div>
         </div>

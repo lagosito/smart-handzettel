@@ -36,6 +36,7 @@ export interface State {
   flyer: FlyerState
   importSt: ImportState
   campaignStatus: CampaignStatus
+  campaignWeek: string
   rankingConfirmed: boolean
   approval: { recipeOk: boolean; bundleOk: boolean; note: string }
   channels: Record<string, ChannelState>
@@ -61,6 +62,8 @@ const initialChannels = (): Record<string, ChannelState> =>
     ]),
   )
 
+export const CAMPAIGN_WEEK_DEFAULT = '35'
+
 export const initialState: State = {
   products: PRODUCTS,
   customRecipes: [],
@@ -81,6 +84,7 @@ export const initialState: State = {
   },
   importSt: { status: 'idle', source: null, rows: 0, errors: 0, warnings: 0, at: null },
   campaignStatus: 'in_pruefung',
+  campaignWeek: CAMPAIGN_WEEK_DEFAULT,
   rankingConfirmed: false,
   approval: { recipeOk: false, bundleOk: false, note: '' },
   channels: initialChannels(),
@@ -109,6 +113,7 @@ type Action =
   | { type: 'recipe/add'; recipe: Recipe }
   | { type: 'bundle/add'; bundle: Bundle }
   | { type: 'trend/boost'; id: string | null }
+  | { type: 'campaignWeek/set'; week: string }
   | { type: 'reset' }
 
 function reducer(s: State, a: Action): State {
@@ -160,6 +165,8 @@ function reducer(s: State, a: Action): State {
       return { ...s, customBundles: [a.bundle, ...s.customBundles] }
     case 'trend/boost':
       return { ...s, trendBoost: a.id }
+    case 'campaignWeek/set':
+      return { ...s, campaignWeek: a.week }
     case 'reset':
       return { ...initialState, weights: { ...DEFAULT_WEIGHTS }, channels: initialChannels(), flyer: { ...initialState.flyer, included: defaultIncluded() } }
     default:
@@ -218,7 +225,7 @@ export function stepStates(s: State): StepState[] {
   return [
     importDone ? (s.importSt.errors > 0 ? 'attention' : 'done') : s.importSt.status === 'processing' ? 'active' : 'locked',
     !importDone ? 'locked' : s.rankingConfirmed ? 'done' : 'active',
-    !s.rankingConfirmed ? 'locked' : pangv.fehler > 0 ? 'attention' : s.flyer.committed ? 'done' : 'active',
+    !s.rankingConfirmed ? 'locked' : pangv.kritisch > 0 ? 'attention' : s.flyer.committed ? 'done' : 'active',
     approved ? 'done' : s.flyer.committed ? 'active' : 'locked',
     published ? 'done' : approved ? 'active' : 'locked',
   ]
@@ -245,9 +252,9 @@ export function approvalChecklist(s: State): CheckRow[] {
   const pricesOk = s.products.every((p) => p.promo < p.price)
   const pangv = pangvSummary(s.products)
   return [
-    { key: 'produkte', label: 'Produkte validiert', detail: importDone ? `${s.importSt.rows} Datensätze · ${s.importSt.warnings} Warnungen` : 'Noch kein validierter Import für KW 35', state: importDone && s.importSt.errors === 0 ? 'ok' : 'error' },
+    { key: 'produkte', label: 'Produkte validiert', detail: importDone ? `${s.importSt.rows} Datensätze · ${s.importSt.warnings} Warnungen` : `Noch kein validierter Import für KW ${s.campaignWeek}`, state: importDone && s.importSt.errors === 0 ? 'ok' : 'error' },
     { key: 'preise', label: 'Preise validiert', detail: pricesOk ? 'Alle Aktionspreise unterhalb der Normalpreise' : 'Mindestens ein Aktionspreis ≥ Normalpreis', state: pricesOk ? 'ok' : 'error' },
-    { key: 'pangv', label: 'PAngV-konform', detail: `${pangv.konform}/${pangv.total} vollständig konform · ${pangv.warnung} Warnungen · ${pangv.fehler} Fehler`, state: pangv.fehler === 0 ? 'ok' : 'error' },
+    { key: 'pangv', label: 'PAngV-Vorprüfung', detail: `${pangv.ok + pangv.offen}/${pangv.total} geprüft · ${pangv.offen} offen · ${pangv.warnung} Warnungen · ${pangv.kritisch} kritisch`, state: pangv.kritisch === 0 ? 'ok' : 'error' },
     { key: 'bilder', label: 'Bilder verfügbar', detail: `${s.products.length}/${s.products.length} Produktmotive zugeordnet`, state: 'ok' },
     { key: 'rezepte', label: 'Rezepte freigegeben', detail: s.flyer.recipeId ? (s.approval.recipeOk ? 'Rezept der Woche bestätigt' : 'Rezept im Flyer – Bestätigung ausstehend') : 'Kein Rezept im Flyer', state: s.flyer.recipeId && s.approval.recipeOk ? 'ok' : 'open', action: 'recipe' },
     { key: 'bundles', label: 'Bundles freigegeben', detail: s.flyer.bundleId ? (s.approval.bundleOk ? 'Smart Bundle bestätigt' : 'Bundle im Flyer – Bestätigung ausstehend') : 'Kein Bundle im Flyer', state: s.flyer.bundleId && s.approval.bundleOk ? 'ok' : 'open', action: 'bundle' },

@@ -43,7 +43,7 @@ export default function Handzettel() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-[22px] font-bold tracking-tight text-zinc-900">Handzettel KW 35</h1>
+            <h1 className="text-[22px] font-bold tracking-tight text-zinc-900">Handzettel KW {state.campaignWeek}</h1>
             <Badge tone={camp.tone}>{camp.label}</Badge>
           </div>
           <p className="text-[13px] text-zinc-500 mt-0.5">Gültig 24.08.–29.08.2026 · Region Nord · vom wöchentlichen Handzettel in Minuten statt Tagen</p>
