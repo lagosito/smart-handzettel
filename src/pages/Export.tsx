@@ -5,6 +5,7 @@ import { CHANNELS } from '../data/mock'
 import type { Channel, ChannelStatus } from '../data/types'
 import { Badge, Btn, Card, SectionHead, Spinner, cn } from '../components/ui'
 import { Icon } from '../lib/icons'
+import { pangvSummary } from '../lib/ai'
 import { DigitalFlyerModal } from '../components/Assistant'
 
 const STATUS_META: Record<ChannelStatus, { label: string; tone: 'ok' | 'warn' | 'err' | 'info' | 'zinc' }> = {
@@ -102,6 +103,7 @@ export default function Export() {
   const nav = useNavigate()
   const camp = CAMPAIGN_LABEL[state.campaignStatus]
   const approved = state.campaignStatus === 'freigegeben' || state.campaignStatus === 'veroeffentlicht'
+  const pangv = pangvSummary(state.products)
   const [busy, setBusy] = useState<string | null>(null)
   const [busyAll, setBusyAll] = useState(false)
   const [digital, setDigital] = useState(false)
@@ -239,7 +241,7 @@ export default function Export() {
           {[
             ['Version', 'KW ' + state.campaignWeek + ' · v3 · Entwurf vom 22.08., 16:41'],
             ['Freigegeben von', state.approvedAt ? `${'M. Clausen (Leitung Handelsmarketing)'} · ${state.approvedAt}` : 'Ausstehend'],
-            ['PAngV-Prüfstand', '100 % konform · Protokoll #2026-0835'],
+            ['PAngV-Prüfstand', `${pangv.ok + pangv.offen}/${pangv.total} geprüft · ${pangv.offen} offen`],
             ['Änderungssperre', approved ? 'Aktiv – Änderungen nur per neuer Version' : 'Noch offen'],
           ].map(([l, v]) => (
             <div key={l}>
@@ -248,6 +250,7 @@ export default function Export() {
             </div>
           ))}
         </div>
+        <p className="text-[10px] text-zinc-400 mt-2">Automatische Vorprüfung. Ersetzt keine rechtliche Beratung.</p>
       </Card>
 
       <DigitalFlyerModal open={digital} onClose={() => setDigital(false)} />

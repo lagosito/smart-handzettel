@@ -123,7 +123,7 @@ export default function Handzettel() {
         <Card>
           <SectionHead title="PAngV-Check" sub="Preisangabenverordnung – automatisch geprüft" />
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge tone="ok">{pangv.ok} konform</Badge>
+            <Badge tone={pangv.offen > 0 ? 'accent' : 'ok'}>{pangv.ok}/{pangv.total} geprüft{pangv.offen > 0 ? `, ${pangv.offen} offen` : ''}</Badge>
             <Badge tone="warn">{pangv.warnung} Warnungen</Badge>
             <Badge tone={pangv.kritisch > 0 ? 'err' : 'ok'}>{pangv.kritisch} Fehler</Badge>
           </div>

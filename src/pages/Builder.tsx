@@ -324,15 +324,16 @@ export default function Builder() {
                 { l: 'Ø KI-Score', v: String(includedScore) },
                 { l: 'Ø Marge', v: marginAvg + ' %' },
                 { l: 'Kategorien', v: `${catCoverage}/9` },
-                { l: 'PAngV', v: pangv.kritisch === 0 ? 'konform' : `${pangv.kritisch} Fehler` },
+                { l: 'PAngV', v: pangv.kritisch === 0 ? `${pangv.offen} offen` : `${pangv.kritisch} kritisch` },
               ].map((x) => (
                 <div key={x.l}>
                   <div className="text-[10px] uppercase tracking-wider font-semibold text-zinc-400">{x.l}</div>
-                  <div className={cn('text-lg font-bold tnum mt-0.5', x.v === 'konform' ? 'text-emerald-600' : x.v.includes('Fehler') ? 'text-red-600' : 'text-zinc-900')}>{x.v}</div>
+                  <div className={cn('text-lg font-bold tnum mt-0.5', x.v.includes('offen') ? 'text-amber-600' : x.v.includes('kritisch') ? 'text-red-600' : 'text-emerald-600')}>{x.v}</div>
                 </div>
               ))}
             </div>
-            <div className="space-y-2 mt-4 pt-3.5 border-t border-zinc-100">
+            <p className="text-[10px] text-zinc-400 mt-2">Automatische Vorprüfung. Ersetzt keine rechtliche Beratung.</p>
+            <div className="space-y-2 mt-3 pt-3 border-t border-zinc-100">
               {suggestions.map((su, i) => (
                 <div key={i} className={cn('rounded-lg border px-2.5 py-2 text-[11px] leading-snug', su.tone === 'ok' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : su.tone === 'warn' ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-sky-50 border-sky-200 text-sky-900')}>
                   <div className="flex items-start gap-1.5">
