@@ -2,7 +2,7 @@ import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useApp, stepStates, STEP_META, CAMPAIGN_LABEL } from '../state/AppState'
 import { DASH_KPIS, RETAILER, TREND_EVENTS } from '../data/mock'
-import { scoreOne, scoreProducts } from '../lib/ai'
+import { scoreOne, scoreProducts, pangvSummary } from '../lib/ai'
 import { Badge, Btn, Card, SectionHead, Kpi, ScoreRing, cn } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { formatDE } from '../lib/utils'
@@ -32,6 +32,12 @@ export default function Dashboard() {
 
   const doneCount = steps.filter((s) => s === 'done').length
 
+  const pangv = pangvSummary(state.products)
+  const dashKpis = DASH_KPIS.map((k) => k.id === 'pangv'
+    ? { ...k, value: `${pangv.ok + pangv.offen}/${pangv.total}`, sub: pangv.offen > 0 ? `${pangv.offen} offen` : 'alle geprüft', points: [...k.points.slice(0, -1), pangv.ok + pangv.offen] }
+    : k
+  )
+
   return (
     <div className="space-y-5 anim-in">
       {/* Kopf */}
@@ -54,7 +60,7 @@ export default function Dashboard() {
 
       {/* KPI-Raster */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-        {DASH_KPIS.map((k) => (
+        {dashKpis.map((k) => (
           <Kpi key={k.id} label={k.label} value={k.value} sub={k.sub} delta={k.delta} points={k.points} />
         ))}
       </div>
