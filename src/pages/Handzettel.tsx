@@ -123,9 +123,9 @@ export default function Handzettel() {
         <Card>
           <SectionHead title="PAngV-Check" sub="Preisangabenverordnung – automatisch geprüft" />
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge tone="ok">{pangv.konform} konform</Badge>
+            <Badge tone="ok">{pangv.ok} konform</Badge>
             <Badge tone="warn">{pangv.warnung} Warnungen</Badge>
-            <Badge tone={pangv.fehler > 0 ? 'err' : 'ok'}>{pangv.fehler} Fehler</Badge>
+            <Badge tone={pangv.kritisch > 0 ? 'err' : 'ok'}>{pangv.kritisch} Fehler</Badge>
           </div>
           <p className="text-[11.5px] text-zinc-500 mt-3 leading-relaxed">
             Jede Preiszeile im Flyer trägt Grundpreis, Pfand-Vermerk und UVP-Kennzeichnung. Prüfregeln: § 1, § 2 und § 3 PAngV.

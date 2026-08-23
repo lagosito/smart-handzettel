@@ -6,7 +6,7 @@ import { Badge, Btn, Card, HBars, LineChart, SectionHead, Sparkline, cn } from '
 import { Icon } from '../lib/icons'
 
 export default function Trends() {
-  const { notify, dispatch } = useApp()
+  const { state, notify, dispatch } = useApp()
   const nav = useNavigate()
 
   return (

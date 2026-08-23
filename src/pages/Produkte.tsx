@@ -11,7 +11,7 @@ export default function Produkte() {
   const nav = useNavigate()
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('alle')
-  const [checks, setChecks] = useState<'alle' | 'konform' | 'warnung' | 'fehler'>('alle')
+  const [checks, setChecks] = useState<'alle' | 'ok' | 'warnung' | 'fehler'>('alle')
 
   const cats = useMemo(() => {
     const m = new Map<string, number>()
@@ -48,7 +48,7 @@ export default function Produkte() {
           </div>
           <select className={cn(inputCls, 'w-auto')} value={checks} onChange={(e) => setChecks(e.target.value as any)}>
             <option value="alle">PAngV: alle</option>
-            <option value="konform">PAngV: konform</option>
+            <option value="ok">PAngV: ok</option>
             <option value="warnung">PAngV: Warnung</option>
             <option value="fehler">PAngV: Fehler</option>
           </select>
@@ -105,8 +105,8 @@ export default function Produkte() {
                 stock: <span className={cn('tnum font-medium', p.stock < 180 ? 'text-amber-600' : 'text-zinc-700')}>{p.stock}</span>,
                 score: <span className={cn('tnum font-bold', sc >= 85 ? 'text-accent-700' : sc >= 70 ? 'text-amber-600' : 'text-zinc-400')}>{sc}</span>,
                 pangv: (
-                  <span title={pv.items.filter((i) => i.level !== 'konform').map((i) => i.detail).join(' ') || 'Konform'}>
-                    {pv.status === 'konform' ? (
+                  <span title={pv.items.filter((i) => i.level !== 'ok').map((i) => i.detail).join(' ') || 'Konform'}>
+                    {pv.status === 'ok' ? (
                       <Icon name="shield" size={16} className="inline text-emerald-600" />
                     ) : pv.status === 'warnung' ? (
                       <Icon name="alert" size={16} className="inline text-amber-500" />

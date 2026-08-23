@@ -42,7 +42,7 @@ export default function ProduktDetail() {
   const r = scoreProduct(p, state.weights)
   const st = CATEGORY_STYLE[p.category]
   const inFlyer = state.flyer.included.includes(p.id)
-  const danger = pv.status === 'fehler'
+  const danger = pv.status === 'kritisch'
 
   return (
     <div className="space-y-5 anim-in max-w-6xl">
@@ -149,9 +149,9 @@ export default function ProduktDetail() {
                 {pv.items.map((i) => (
                   <div key={i.label} className="flex items-start gap-2.5 text-[12px]">
                     <Icon
-                      name={i.level === 'konform' ? 'checkc' : i.level === 'warnung' ? 'alert' : 'xc'}
+                      name={i.level === 'ok' ? 'checkc' : i.level === 'warnung' ? 'alert' : 'xc'}
                       size={15}
-                      className={cn('mt-px shrink-0', i.level === 'konform' ? 'text-emerald-600' : i.level === 'warnung' ? 'text-amber-500' : 'text-red-500')}
+                      className={cn('mt-px shrink-0', i.level === 'ok' ? 'text-emerald-600' : i.level === 'warnung' ? 'text-amber-500' : 'text-red-500')}
                     />
                     <div>
                       <span className="font-semibold text-zinc-800">{i.label}</span>

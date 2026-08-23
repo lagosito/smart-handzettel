@@ -67,7 +67,7 @@ export default function Builder() {
     if (pangv.kritisch > 0) out.push({ icon: 'alert', tone: 'warn', text: `${pangv.kritisch} Artikel im Flyer verletzen die PAngV – bitte Preise prüfen.` })
     if (flyer.personalization) out.push({ icon: 'checkc', tone: 'ok', text: `Personalisierung aktiv: 6 Segmente erhalten eigene Hero-Produkte, Rezepte & Bundles.` })
     return out
-  }, [state.products, state.weights, flyer, pangv.fehler])
+  }, [state.products, state.weights, flyer, pangv.kritisch])
 
   const setSegment = (key: string) => {
     const seg = SEGMENTS.find((s) => s.key === key)!
