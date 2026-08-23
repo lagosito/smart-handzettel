@@ -195,7 +195,7 @@ function reducer(s: State, a: Action): State {
   }
 }
 
-const LS_KEY = 'shz-state-v1'
+const LS_KEY = 'smart-handzettel:v2'
 
 const Ctx = createContext<{ state: State; dispatch: React.Dispatch<Action> }>({ state: initialState, dispatch: () => {} })
 
@@ -207,7 +207,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const raw = localStorage.getItem(LS_KEY)
       if (raw) {
         const parsed = JSON.parse(raw)
-        return { ...base, ...parsed, toasts: [], flyer: { ...base.flyer, ...(parsed.flyer || {}) }, importSt: { ...base.importSt, ...(parsed.importSt || {}) }, approval: { ...base.approval, ...(parsed.approval || {}) } }
+        // Filter out undefined values from old payloads so defaults from base are preserved
+        const clean = Object.fromEntries(Object.entries(parsed).filter(([, v]) => v !== undefined)) as Partial<State>
+        return { ...base, ...clean, toasts: [], flyer: { ...base.flyer, ...(clean.flyer || {}) }, importSt: { ...base.importSt, ...(clean.importSt || {}) }, approval: { ...base.approval, ...(clean.approval || {}) } }
       }
     } catch {}
     return base
