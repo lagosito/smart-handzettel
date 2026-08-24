@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useApp } from '../state/AppState'
-import { pangvCheck, placementFor, scoreProduct } from '../lib/ai'
+import { pangvCheck, placementFor, scoreOne, scoreProducts } from '../lib/ai'
 import { Badge, Btn, Card, HBars, Progress, ScoreRing, SectionHead, Sparkline, cn } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { CATEGORY_STYLE } from '../data/mock'
@@ -39,10 +39,10 @@ export default function ProduktDetail() {
   }
 
   const pv = pangvCheck(p)
-  const r = scoreProduct(p, state.weights)
+  const r = scoreOne(p, state.products, state.weights)
   const st = CATEGORY_STYLE[p.category]
   const inFlyer = state.flyer.included.includes(p.id)
-  const danger = pv.status === 'fehler'
+  const danger = pv.status === 'kritisch'
 
   return (
     <div className="space-y-5 anim-in max-w-6xl">
@@ -126,7 +126,7 @@ export default function ProduktDetail() {
                   <Sparkline points={velHistory} width={170} height={52} />
                   <div className="text-[11px] text-zinc-400 leading-snug">
                     Trend: <span className="font-bold text-emerald-600">steigend</span>
-                    <br />unterstützt durch Hitzewelle KW 35
+                    <br />unterstützt durch Hitzewelle KW {state.campaignWeek}
                   </div>
                 </div>
               </div>
@@ -149,9 +149,9 @@ export default function ProduktDetail() {
                 {pv.items.map((i) => (
                   <div key={i.label} className="flex items-start gap-2.5 text-[12px]">
                     <Icon
-                      name={i.level === 'konform' ? 'checkc' : i.level === 'warnung' ? 'alert' : 'xc'}
+                      name={i.level === 'ok' ? 'checkc' : i.level === 'warnung' ? 'alert' : 'xc'}
                       size={15}
-                      className={cn('mt-px shrink-0', i.level === 'konform' ? 'text-emerald-600' : i.level === 'warnung' ? 'text-amber-500' : 'text-red-500')}
+                      className={cn('mt-px shrink-0', i.level === 'ok' ? 'text-emerald-600' : i.level === 'warnung' ? 'text-amber-500' : 'text-red-500')}
                     />
                     <div>
                       <span className="font-semibold text-zinc-800">{i.label}</span>
@@ -186,7 +186,7 @@ export default function ProduktDetail() {
               </div>
               {r.score >= 85 && (
                 <div className="mt-3.5 rounded-lg bg-white border border-accent-200 px-3 py-2 text-[11.5px] text-accent-900">
-                  <span className="font-bold">Empfehlung:</span> Auf Seite 1 platzieren – prognostizierter Mehrumsatz +{formatDE(p.velocity * (p.price - p.promo) * 0.4)} € in KW 35.
+                  <span className="font-bold">Empfehlung:</span> Auf Seite 1 platzieren – prognostizierter Mehrumsatz +{formatDE(p.velocity * (p.price - p.promo) * 0.4)} € in KW {state.campaignWeek}.
                 </div>
               )}
             </Card>

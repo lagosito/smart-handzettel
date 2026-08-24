@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import type { Product, Recipe, Bundle as BundleT, SegmentKey } from '../data/types'
 import { SEGMENTS, CATEGORY_STYLE, bundleSingleSum } from '../data/mock'
-import { scoreProduct } from '../lib/ai'
+import { scoreOne, scoreProducts } from '../lib/ai'
 import { cn, discount, formatDE } from '../lib/utils'
 import { useApp } from '../state/AppState'
 import { QRCode } from './ui'
@@ -40,7 +40,7 @@ function Starburst({ pct, size = 54 }: { pct: number; size?: number }) {
   )
 }
 
-function ProductVisual({ p, className, emojiSize = 44 }: { p: Product; className?: string; emojiSize?: number }) {
+function ProductVisual({ p, className, emojiSize = 44, asset }: { p: Product; className?: string; emojiSize?: number; asset?: import('../data/types').ProductAsset }) {
   const st = CATEGORY_STYLE[p.category]
   return (
     <div className={cn('relative flex items-center justify-center overflow-hidden', className)} style={{ background: st.soft }}>
@@ -48,15 +48,18 @@ function ProductVisual({ p, className, emojiSize = 44 }: { p: Product; className
       {p.bio && (
         <span className="absolute top-1.5 left-1.5 text-[8.5px] font-bold tracking-wide bg-emerald-600 text-white rounded px-1 py-0.5">BIO</span>
       )}
+      {asset?.symbolbild && (
+        <span className="absolute bottom-1 left-1 text-[7px] font-bold tracking-wide bg-zinc-800/80 text-white rounded px-1 py-0.5 print:bg-zinc-800 print:text-white">Symbolbild</span>
+      )}
     </div>
   )
 }
 
-function FlyerProductCard({ p, variant }: { p: Product; variant: 'desktop' | 'mobile' }) {
+function FlyerProductCard({ p, variant, asset }: { p: Product; variant: 'desktop' | 'mobile'; asset?: import('../data/types').ProductAsset }) {
   const d = discount(p.price, p.promo)
   return (
     <div className={cn('relative rounded-lg border border-zinc-200 bg-white overflow-hidden flex flex-col hover:shadow-lg transition-shadow', variant === 'mobile' && 'text-sm')}>
-      <ProductVisual p={p} className="aspect-[4/3]" emojiSize={variant === 'mobile' ? 34 : 42} />
+      <ProductVisual p={p} className="aspect-[4/3]" emojiSize={variant === 'mobile' ? 34 : 42} asset={asset} />
       <div className="absolute top-1.5 right-1.5">
         <Starburst pct={d} size={variant === 'mobile' ? 42 : 50} />
       </div>
@@ -93,7 +96,7 @@ export default function FlyerPreview({ variant = 'desktop' }: { variant?: 'deskt
   const scored = useMemo(() => {
     const w = state.weights
     return included
-      .map((p) => ({ p, s: scoreProduct(p, w).score, seg: flyer.personalization && p.segments.includes(segment) ? 1 : 0 }))
+      .map((p) => ({ p, s: scoreOne(p, included, w).score, seg: flyer.personalization && p.segments.includes(segment) ? 1 : 0 }))
       .sort((a, b) => (flyer.personalization ? b.seg - a.seg || b.s - a.s : b.s - a.s))
   }, [included, state.weights, flyer.personalization, segment])
 
@@ -109,6 +112,8 @@ export default function FlyerPreview({ variant = 'desktop' }: { variant?: 'deskt
   }, [flyer.personalization, flyer.heroId, segDef, included, scored])
 
   const grid = scored.filter((x) => x.p.id !== hero?.id).map((x) => x.p)
+
+  const assetFor = (id: string) => state.assets.find((a) => a.productId === id)
 
   const recipe: Recipe | undefined = allRecipes.find((r) => r.id === flyer.recipeId)
   const bundle: BundleT | undefined = allBundles.find((b) => b.id === flyer.bundleId)
@@ -147,7 +152,7 @@ export default function FlyerPreview({ variant = 'desktop' }: { variant?: 'deskt
             </div>
           </div>
           <div className="text-right leading-none">
-            <div className="text-[10px] font-semibold text-accent-200">KW 35</div>
+            <div className="text-[10px] font-semibold text-accent-200">KW {state.campaignWeek}</div>
             <div className={cn('font-bold tnum', variant === 'mobile' ? 'text-[10px]' : 'text-[11.5px]')}>24.08. – 29.08.26</div>
           </div>
         </div>
@@ -201,7 +206,7 @@ export default function FlyerPreview({ variant = 'desktop' }: { variant?: 'deskt
         {layout === 'kompakt' || variant === 'mobile' ? (
           <div className={cn('grid', gridCols)}>
             {grid.slice(0, variant === 'mobile' ? 6 : 12).map((p) => (
-              <FlyerProductCard key={p.id} p={p} variant={variant} />
+              <FlyerProductCard key={p.id} p={p} variant={variant} asset={assetFor(p.id)} />
             ))}
           </div>
         ) : (
@@ -214,7 +219,7 @@ export default function FlyerPreview({ variant = 'desktop' }: { variant?: 'deskt
                 </div>
                 <div className={cn('grid', gridCols)}>
                   {items.map((p) => (
-                    <FlyerProductCard key={p.id} p={p} variant={variant} />
+                    <FlyerProductCard key={p.id} p={p} variant={variant} asset={assetFor(p.id)} />
                   ))}
                 </div>
               </div>
@@ -299,7 +304,7 @@ export default function FlyerPreview({ variant = 'desktop' }: { variant?: 'deskt
             <div className={cn('font-extrabold leading-tight', variant === 'mobile' ? 'text-[13px]' : 'text-[15px]')}>Alle Angebote auch online & in der App</div>
             <div className="text-[10.5px] text-accent-300 mt-0.5">Jetzt scannen · persönliche Angebote sichern · Merkliste anlegen</div>
             <div className="text-[8.5px] text-zinc-500 mt-2 leading-snug">
-              *Alle Preise inkl. gesetzlicher MwSt., zzgl. Pfand. Grundpreise gemäß § 2 PAngV. Angebote gültig {flyer.subline.includes('24.08.') ? '24.08.–29.08.2026' : 'KW 35'}, nur solange der Vorrat reicht.
+              *Alle Preise inkl. gesetzlicher MwSt., zzgl. Pfand. Grundpreise gemäß § 2 PAngV. Angebote gültig {flyer.subline.includes('24.08.') ? '24.08.–29.08.2026' : 'KW ' + state.campaignWeek}, nur solange der Vorrat reicht.
             </div>
           </div>
         </div>

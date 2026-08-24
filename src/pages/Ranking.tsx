@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useApp } from '../state/AppState'
-import { FACTORS, scoreProduct } from '../lib/ai'
+import { FACTORS, scoreOne, scoreProducts } from '../lib/ai'
 import type { Category, Product, Region } from '../data/types'
 import { Badge, Btn, Card, Drawer, Progress, ScoreRing, SectionHead, cn, inputCls } from '../components/ui'
 import { Icon } from '../lib/icons'
@@ -20,7 +20,7 @@ export default function Ranking() {
   const [quick, setQuick] = useState<Product | null>(null)
 
   const ranked = useMemo(() => {
-    let list = state.products.map((p) => ({ p, r: scoreProduct(p, state.weights) }))
+    let list = state.products.map((p) => ({ p, r: scoreOne(p, state.products, state.weights) }))
     if (cat !== 'alle') list = list.filter((x) => x.p.category === cat)
     if (region !== 'alle') list = list.filter((x) => x.p.region === region || x.p.region === 'Bundesweit')
     if (q.trim()) {
@@ -210,7 +210,7 @@ export default function Ranking() {
       <Drawer open={!!quick} onClose={() => setQuick(null)} title={quick ? `Schnellansicht: ${quick.name}` : ''}>
         {quick &&
           (() => {
-            const r = scoreProduct(quick, state.weights)
+            const r = scoreOne(quick, state.products, state.weights)
             const st = CATEGORY_STYLE[quick.category]
             return (
               <div className="space-y-5">

@@ -5,6 +5,7 @@ import { CHANNELS } from '../data/mock'
 import type { Channel, ChannelStatus } from '../data/types'
 import { Badge, Btn, Card, SectionHead, Spinner, cn } from '../components/ui'
 import { Icon } from '../lib/icons'
+import { pangvSummary } from '../lib/ai'
 import { DigitalFlyerModal } from '../components/Assistant'
 
 const STATUS_META: Record<ChannelStatus, { label: string; tone: 'ok' | 'warn' | 'err' | 'info' | 'zinc' }> = {
@@ -102,6 +103,7 @@ export default function Export() {
   const nav = useNavigate()
   const camp = CAMPAIGN_LABEL[state.campaignStatus]
   const approved = state.campaignStatus === 'freigegeben' || state.campaignStatus === 'veroeffentlicht'
+  const pangv = pangvSummary(state.products)
   const [busy, setBusy] = useState<string | null>(null)
   const [busyAll, setBusyAll] = useState(false)
   const [digital, setDigital] = useState(false)
@@ -129,7 +131,7 @@ export default function Export() {
     }
     setBusy(null)
     setBusyAll(false)
-    notify('Kampagne KW 35 auf allen 9 Kanälen veröffentlicht. 🎉')
+    notify(`Kampagne KW ${state.campaignWeek} auf allen 9 Kanälen veröffentlicht. 🎉`)
   }
 
   return (
@@ -160,7 +162,7 @@ export default function Export() {
         <div className="rounded-xl border border-sky-300 bg-sky-50 px-4 py-3.5 flex flex-wrap items-center gap-3">
           <Icon name="lock" size={17} className="text-sky-600" />
           <div className="flex-1 text-[13px] text-sky-900 leading-snug">
-            <span className="font-bold">Die Veröffentlichung ist gesperrt.</span> Alle Kanäle sind vorbereitet und warten auf die Freigabe der Kampagne KW 35 (Schritt 4).
+            <span className="font-bold">Die Veröffentlichung ist gesperrt.</span> Alle Kanäle sind vorbereitet und warten auf die Freigabe der Kampagne KW {state.campaignWeek} (Schritt 4).
           </div>
           <Btn size="sm" onClick={() => nav('/kampagnen?tab=freigabe')}>
             <Icon name="shield" size={14} />
@@ -175,7 +177,7 @@ export default function Export() {
             <Icon name="checkc" size={20} />
           </div>
           <div className="flex-1 min-w-56">
-            <div className="font-bold">Kampagne KW 35 ist live</div>
+            <div className="font-bold">Kampagne KW {state.campaignWeek} ist live</div>
             <div className="text-[12px] text-zinc-400">Veröffentlicht am {state.publishedAt} · {publishedCount}/9 Kanäle aktiv</div>
           </div>
           <Btn variant="soft" className="!bg-white !text-accent-900 !border-white" onClick={() => nav('/analytics')}>
@@ -237,9 +239,9 @@ export default function Export() {
         <SectionHead title="Versionierung & Governance" sub="Nachvollziehbar für Handelsprüfung und Revision" />
         <div className="grid md:grid-cols-4 gap-4 text-[12px]">
           {[
-            ['Version', 'KW 35 · v3 · Entwurf vom 22.08., 16:41'],
+            ['Version', 'KW ' + state.campaignWeek + ' · v3 · Entwurf vom 22.08., 16:41'],
             ['Freigegeben von', state.approvedAt ? `${'M. Clausen (Leitung Handelsmarketing)'} · ${state.approvedAt}` : 'Ausstehend'],
-            ['PAngV-Prüfstand', '100 % konform · Protokoll #2026-0835'],
+            ['PAngV-Prüfstand', `${pangv.ok + pangv.offen}/${pangv.total} geprüft · ${pangv.offen} offen`],
             ['Änderungssperre', approved ? 'Aktiv – Änderungen nur per neuer Version' : 'Noch offen'],
           ].map(([l, v]) => (
             <div key={l}>
@@ -248,6 +250,7 @@ export default function Export() {
             </div>
           ))}
         </div>
+        <p className="text-[10px] text-zinc-400 mt-2">Automatische Vorprüfung. Ersetzt keine rechtliche Beratung.</p>
       </Card>
 
       <DigitalFlyerModal open={digital} onClose={() => setDigital(false)} />

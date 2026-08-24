@@ -5,6 +5,8 @@ import { CAMPAIGNS } from '../data/mock'
 import { AiTag, Badge, Btn, Card, DataTable, Modal, SectionHead, Tabs, cn, inputCls } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { recipeById, bundleById } from '../data/mock'
+import { pangvCheck, pangvCampaignCheck } from '../lib/ai'
+import { assetSummary } from '../lib/assets'
 
 export default function Kampagnen() {
   const { state, dispatch, notify } = useApp()
@@ -19,6 +21,14 @@ export default function Kampagnen() {
   const approved = state.campaignStatus === 'freigegeben' || state.campaignStatus === 'veroeffentlicht'
   const camp = CAMPAIGN_LABEL[state.campaignStatus]
 
+  // PAngV gate: check for kritisch items and unconfirmed offen items
+  const pangvResults = state.products.map((p) => ({ ...pangvCheck(p), productId: p.id }))
+  const campaignCheck = pangvCampaignCheck()
+  const allPangvItems = [...campaignCheck.items, ...pangvResults.flatMap((r) => r.items)]
+  const hasKritisch = allPangvItems.some((i) => i.level === 'kritisch')
+  const unconfirmedOffen = allPangvItems.filter((i) => i.level === 'offen' && i.requiresConfirmation && !state.pangvConfirmations[`${i.label}:${i.detail}`])
+  const canFreigeben = allOk && !hasKritisch && unconfirmedOffen.length === 0
+
   const confirmRow = (key: string) => {
     if (key === 'recipe') {
       dispatch({ type: 'approval/patch', patch: { recipeOk: true } })
@@ -32,7 +42,7 @@ export default function Kampagnen() {
 
   const approve = () => {
     dispatch({ type: 'campaign/approve' })
-    notify('Handzettel KW 35 freigegeben – Export ist jetzt entsperrt. 🎉')
+    notify(`Handzettel KW ${state.campaignWeek} freigegeben – Export ist jetzt entsperrt. 🎉`)
   }
 
   const requestChanges = () => {
@@ -49,11 +59,11 @@ export default function Kampagnen() {
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-[22px] font-bold tracking-tight text-zinc-900">Kampagnen</h1>
-            <Badge tone={camp.tone}>KW 35: {camp.label}</Badge>
+            <Badge tone={camp.tone}>KW {state.campaignWeek}: {camp.label}</Badge>
           </div>
           <p className="text-[13px] text-zinc-500 mt-0.5">Wochenkampagnen planen, prüfen und freigeben</p>
         </div>
-        <Tabs active={tab} onChange={(k) => setParams({ tab: k === 'liste' ? 'liste' : 'freigabe' })} tabs={[{ key: 'liste', label: 'Übersicht' }, { key: 'freigabe', label: 'Freigabe KW 35' }]} />
+        <Tabs active={tab} onChange={(k) => setParams({ tab: k === 'liste' ? 'liste' : 'freigabe' })} tabs={[{ key: 'liste', label: 'Übersicht' }, { key: 'freigabe', label: `Freigabe KW ${state.campaignWeek}` }]} />
       </div>
 
       {tab === 'liste' && (
@@ -96,7 +106,7 @@ export default function Kampagnen() {
         <div className="grid lg:grid-cols-[1fr_360px] gap-4 items-start">
           <Card>
             <SectionHead
-              title="Freigabe: Handzettel KW 35"
+              title={`Freigabe: Handzettel KW ${state.campaignWeek}`}
               sub="Schritt 4 von 5 · Alle Prüfpunkte – transparent und nachvollziehbar"
               right={<Badge tone={approved ? 'ok' : allOk ? 'accent' : 'info'}>{approved ? 'Freigegeben' : allOk ? 'Bereit zur Freigabe' : `${checks.filter((c) => c.state === 'ok').length}/${checks.length} bestätigt`}</Badge>}
             />
@@ -130,6 +140,69 @@ export default function Kampagnen() {
               ))}
             </div>
 
+            {/* PAngV offene Punkte — gruppiert nach Label */}
+            {(() => {
+              // Group open items by label, collect affected product IDs
+              const grouped = new Map<string, { item: typeof unconfirmedOffen[0]; productIds: string[] }>()
+              for (const item of unconfirmedOffen) {
+                const existing = grouped.get(item.label)
+                if (existing) {
+                  // Same label, different detail = same check type, accumulate
+                } else {
+                  grouped.set(item.label, { item, productIds: [] })
+                }
+              }
+              // Collect product IDs per group from all pangv results
+              for (const r of pangvResults) {
+                for (const item of r.items) {
+                  if (item.level === 'offen' && item.requiresConfirmation) {
+                    const group = grouped.get(item.label)
+                    if (group && !group.productIds.includes(r.productId)) {
+                      group.productIds.push(r.productId)
+                    }
+                  }
+                }
+              }
+              // Also add campaign-level items
+              for (const item of campaignCheck.items) {
+                if (item.level === 'offen' && item.requiresConfirmation) {
+                  if (!grouped.has(item.label)) {
+                    grouped.set(item.label, { item, productIds: [] })
+                  }
+                }
+              }
+              const groups = [...grouped.entries()]
+              if (groups.length === 0 || approved) return null
+              return (
+                <div className="mt-4 pt-4 border-t border-zinc-100">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mb-2">Offene PAngV-Punkte</div>
+                  <div className="space-y-1.5">
+                    {groups.map(([label, { item, productIds }]) => {
+                      const confKey = label
+                      const isConfirmed = !!state.pangvConfirmations[confKey]
+                      const scope = productIds.length > 0 ? ` für ${productIds.length} Artikel` : ''
+                      return (
+                        <label key={confKey} className="flex items-start gap-2 py-1.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isConfirmed}
+                            onChange={() => dispatch({ type: 'pangv/confirm', key: confKey, productIds })}
+                            className="mt-0.5 accent-accent-600 shrink-0"
+                          />
+                          <span className="text-[12px] text-zinc-600">
+                            <span className="font-medium text-zinc-800">{label}{scope}:</span> {item.detail}
+                            {isConfirmed && state.pangvConfirmations[confKey] && (
+                              <span className="text-[10px] text-zinc-400 ml-1">✓ bestätigt am {state.pangvConfirmations[confKey].at}</span>
+                            )}
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })()}
+
             {approved ? (
               <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-300 px-4 py-4 flex flex-wrap items-center gap-3">
                 <Icon name="checkc" size={20} className="text-emerald-600" />
@@ -142,8 +215,9 @@ export default function Kampagnen() {
                 </Btn>
               </div>
             ) : (
+              <>
               <div className="flex flex-wrap gap-2.5 mt-5 pt-4 border-t border-zinc-100">
-                <Btn onClick={approve} disabled={!allOk} size="lg">
+                <Btn onClick={approve} disabled={!canFreigeben} size="lg">
                   <Icon name="shield" size={16} />
                   Freigeben
                 </Btn>
@@ -151,8 +225,16 @@ export default function Kampagnen() {
                   <Icon name="edit" size={15} />
                   Änderungen anfordern
                 </Btn>
-                {!allOk && <span className="self-center text-[11.5px] text-zinc-400">Freigabe erst möglich, wenn alle Prüfpunkte bestätigt sind.</span>}
+                {!canFreigeben && (
+                  <span className="self-center text-[11.5px] text-zinc-400">
+                    {hasKritisch ? 'Kritische PAngV-Punkte müssen behoben werden.' :
+                     unconfirmedOffen.length > 0 ? `${unconfirmedOffen.length} offene Punkt(e) müssen manuell bestätigt werden.` :
+                     'Freigabe erst möglich, wenn alle Prüfpunkte bestätigt sind.'}
+                  </span>
+                )}
               </div>
+              <p className="text-[10px] text-zinc-400 mt-3">Automatische Vorprüfung. Ersetzt keine rechtliche Beratung.</p>
+              </>
             )}
             {state.approval.note && !approved && (
               <div className="mt-3 rounded-lg bg-amber-50 border border-amber-300 px-3.5 py-3 text-[12px] text-amber-900">
@@ -163,7 +245,7 @@ export default function Kampagnen() {
 
           <div className="space-y-4">
             <Card>
-              <SectionHead title="Zusammenfassung KW 35" sub="Was genau freigegeben wird" />
+              <SectionHead title={`Zusammenfassung KW ${state.campaignWeek}`} sub="Was genau freigegeben wird" />
               <div className="space-y-2.5 text-[12.5px]">
                 <div className="flex justify-between"><span className="text-zinc-500">Angebote</span><span className="font-bold tnum">{state.flyer.included.length}</span></div>
                 <div className="flex justify-between"><span className="text-zinc-500">Rezept</span><span className="font-semibold truncate ml-4 text-zinc-800">{recipeById(state.flyer.recipeId)?.title ?? '–'}</span></div>
@@ -176,6 +258,27 @@ export default function Kampagnen() {
                 <Icon name="eye" size={14} />
                 Flyer-Vorschau öffnen
               </Btn>
+            </Card>
+
+            <Card>
+              <SectionHead title="Bilder & Assets" sub="Provenance der Produktbilder" />
+              {(() => {
+                const summary = assetSummary(state.assets)
+                const totalProducts = state.products.length
+                return (
+                  <div className="text-[12.5px] text-zinc-600 leading-relaxed">
+                    {state.assets.length === 0 ? (
+                      <span className="text-zinc-400">Noch keine Assets zugeordnet.</span>
+                    ) : (
+                      <span>
+                        <span className="font-bold text-zinc-900">{totalProducts} Artikel</span> —{' '}
+                        {summary.lieferant} Lieferantenbild, {summary.optimiert} optimiert,{' '}
+                        {summary.ki} KI-generiert (als Symbolbild gekennzeichnet)
+                      </span>
+                    )}
+                  </div>
+                )
+              })()}
             </Card>
 
             <Card className="border-accent-200 bg-accent-50/40">

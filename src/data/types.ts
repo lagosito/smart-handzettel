@@ -17,6 +17,7 @@ export interface Product {
   id: string
   name: string
   brand: string
+  markenartikel: boolean
   category: Category
   ean: string
   unit: string
@@ -130,6 +131,18 @@ export type StepState = 'done' | 'active' | 'attention' | 'locked'
 
 export interface ScoreResult {
   score: number
-  contributions: { key: string; label: string; points: number; pct: number }[]
+  contributions: { key: string; label: string; value: number; points: number; pct: number }[]
   explanation: string
+}
+
+// ── Asset Provenance ─────────────────────────────────────────────
+export type AssetSource = 'lieferant' | 'optimiert' | 'ki'
+
+export interface ProductAsset {
+  productId: string
+  src?: string
+  source: AssetSource
+  symbolbild: boolean
+  note?: string
+  updatedAt: string
 }

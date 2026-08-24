@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../state/AppState'
-import { pangvCheck, scoreProduct } from '../lib/ai'
+import { pangvCheck, scoreOne, scoreProducts } from '../lib/ai'
 import { Badge, Card, DataTable, Tabs, cn, inputCls } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { discount, formatDE, kfmt } from '../lib/utils'
@@ -11,7 +11,7 @@ export default function Produkte() {
   const nav = useNavigate()
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('alle')
-  const [checks, setChecks] = useState<'alle' | 'konform' | 'warnung' | 'fehler'>('alle')
+  const [checks, setChecks] = useState<'alle' | 'ok' | 'warnung' | 'fehler'>('alle')
 
   const cats = useMemo(() => {
     const m = new Map<string, number>()
@@ -37,7 +37,7 @@ export default function Produkte() {
         <div>
           <h1 className="text-[22px] font-bold tracking-tight text-zinc-900">Produkte</h1>
           <p className="text-[13px] text-zinc-500 mt-0.5">
-            {state.products.length} Aktionsartikel für KW 35 · Quelle: {state.importSt.source ?? 'Stammsortiment (Demo)'}
+            {state.products.length} Aktionsartikel für KW {state.campaignWeek} · Quelle: {state.importSt.source ?? 'Stammsortiment (Demo)'}
             {state.importSt.at ? ` · Import: ${state.importSt.at}` : ''}
           </p>
         </div>
@@ -48,7 +48,7 @@ export default function Produkte() {
           </div>
           <select className={cn(inputCls, 'w-auto')} value={checks} onChange={(e) => setChecks(e.target.value as any)}>
             <option value="alle">PAngV: alle</option>
-            <option value="konform">PAngV: konform</option>
+            <option value="ok">PAngV: ok</option>
             <option value="warnung">PAngV: Warnung</option>
             <option value="fehler">PAngV: Fehler</option>
           </select>
@@ -83,7 +83,7 @@ export default function Produkte() {
             ]}
             rows={list.map((p) => {
               const pv = pangvCheck(p)
-              const sc = scoreProduct(p, state.weights).score
+              const sc = scoreOne(p, state.products, state.weights).score
               return {
                 id: p.id,
                 ean: <span className="tnum text-zinc-500 text-xs">{p.ean}</span>,
@@ -105,8 +105,8 @@ export default function Produkte() {
                 stock: <span className={cn('tnum font-medium', p.stock < 180 ? 'text-amber-600' : 'text-zinc-700')}>{p.stock}</span>,
                 score: <span className={cn('tnum font-bold', sc >= 85 ? 'text-accent-700' : sc >= 70 ? 'text-amber-600' : 'text-zinc-400')}>{sc}</span>,
                 pangv: (
-                  <span title={pv.items.filter((i) => i.level !== 'konform').map((i) => i.detail).join(' ') || 'Konform'}>
-                    {pv.status === 'konform' ? (
+                  <span title={pv.items.filter((i) => i.level !== 'ok').map((i) => i.detail).join(' ') || 'Konform'}>
+                    {pv.status === 'ok' ? (
                       <Icon name="shield" size={16} className="inline text-emerald-600" />
                     ) : pv.status === 'warnung' ? (
                       <Icon name="alert" size={16} className="inline text-amber-500" />

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useApp } from '../state/AppState'
 import { BUNDLES, SEGMENTS, bundleSingleSum, recipeById } from '../data/mock'
-import { scoreProduct } from '../lib/ai'
+import { scoreOne, scoreProducts } from '../lib/ai'
 import { cn, formatDE } from '../lib/utils'
 import { Btn, Modal } from './ui'
 import { Icon } from '../lib/icons'
@@ -26,7 +26,7 @@ export default function Assistant({ compact }: { compact?: boolean }) {
     {
       id: 0,
       role: 'ai',
-      text: 'Guten Tag! Ich bin Ihr Einkaufsassistent für den Handzettel der KW 35. Ich kenne alle aktuellen Angebote, Rezepte und Bundles – wie kann ich helfen?',
+      text: `Guten Tag! Ich bin Ihr Einkaufsassistent für den Handzettel der KW ${state.campaignWeek}. Ich kenne alle aktuellen Angebote, Rezepte und Bundles – wie kann ich helfen?`,
     },
   ])
   const [input, setInput] = useState('')
@@ -41,7 +41,7 @@ export default function Assistant({ compact }: { compact?: boolean }) {
     const t = q.toLowerCase()
     const seg = SEGMENTS.find((s) => s.key === state.flyer.segment)!
     const ranked = [...state.products]
-      .map((p) => ({ p, s: scoreProduct(p, state.weights).score }))
+      .map((p) => ({ p, s: scoreOne(p, state.products, state.weights).score }))
       .sort((a, b) => b.s - a.s)
 
     if (/vegetar|veggie|fleischlos|vegan/.test(t)) {
@@ -92,7 +92,7 @@ export default function Assistant({ compact }: { compact?: boolean }) {
       }
     }
     if (/hallo|guten tag|moin|hi$/.test(t)) {
-      return { id: seq++, role: 'ai', text: `Moin! In KW 35 gibt es ${state.products.length} Top-Angebote – gefiltert für ${seg.label}. Fragen Sie mich gern nach Rezepten, Budgets oder dem Grillwetter.` }
+      return { id: seq++, role: 'ai', text: `Moin! In KW ${state.campaignWeek} gibt es ${state.products.length} Top-Angebote – gefiltert für ${seg.label}. Fragen Sie mich gern nach Rezepten, Budgets oder dem Grillwetter.` }
     }
     return {
       id: seq++,

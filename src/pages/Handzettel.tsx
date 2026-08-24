@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useApp, stepStates, STEP_META, CAMPAIGN_LABEL, approvalChecklist } from '../state/AppState'
 import { Badge, Btn, Card, SectionHead, Stepper, cn } from '../components/ui'
 import { Icon } from '../lib/icons'
-import { pangvSummary, scoreProduct } from '../lib/ai'
+import { pangvSummary, scoreOne, scoreProducts } from '../lib/ai'
 import type { StepState } from '../data/types'
 import { BUNDLES, recipeById } from '../data/mock'
 
@@ -24,7 +24,7 @@ export default function Handzettel() {
   const checks = approvalChecklist(state)
   const okCount = checks.filter((c) => c.state === 'ok').length
   const published = Object.values(state.channels).filter((c) => c.status === 'veroeffentlicht').length
-  const topScore = Math.max(...state.products.map((p) => scoreProduct(p, state.weights).score))
+  const topScore = Math.max(...state.products.map((p) => scoreOne(p, state.products, state.weights).score))
 
   const details: string[] = [
     state.importSt.status === 'done'
@@ -43,7 +43,7 @@ export default function Handzettel() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-[22px] font-bold tracking-tight text-zinc-900">Handzettel KW 35</h1>
+            <h1 className="text-[22px] font-bold tracking-tight text-zinc-900">Handzettel KW {state.campaignWeek}</h1>
             <Badge tone={camp.tone}>{camp.label}</Badge>
           </div>
           <p className="text-[13px] text-zinc-500 mt-0.5">Gültig 24.08.–29.08.2026 · Region Nord · vom wöchentlichen Handzettel in Minuten statt Tagen</p>
@@ -123,9 +123,9 @@ export default function Handzettel() {
         <Card>
           <SectionHead title="PAngV-Check" sub="Preisangabenverordnung – automatisch geprüft" />
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge tone="ok">{pangv.konform} konform</Badge>
+            <Badge tone={pangv.offen > 0 ? 'accent' : 'ok'}>{pangv.ok}/{pangv.total} geprüft{pangv.offen > 0 ? `, ${pangv.offen} offen` : ''}</Badge>
             <Badge tone="warn">{pangv.warnung} Warnungen</Badge>
-            <Badge tone={pangv.fehler > 0 ? 'err' : 'ok'}>{pangv.fehler} Fehler</Badge>
+            <Badge tone={pangv.kritisch > 0 ? 'err' : 'ok'}>{pangv.kritisch} Fehler</Badge>
           </div>
           <p className="text-[11.5px] text-zinc-500 mt-3 leading-relaxed">
             Jede Preiszeile im Flyer trägt Grundpreis, Pfand-Vermerk und UVP-Kennzeichnung. Prüfregeln: § 1, § 2 und § 3 PAngV.

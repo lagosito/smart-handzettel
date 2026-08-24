@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
 import { BUNDLES, CHANNELS, PRODUCTS, RECIPES } from '../data/mock'
-import type { Bundle, CampaignStatus, ChannelState, Product, Recipe, SegmentKey, StepState, Toast } from '../data/types'
-import { DEFAULT_WEIGHTS, pangvSummary, scoreProduct } from '../lib/ai'
+import type { Bundle, CampaignStatus, ChannelState, Product, ProductAsset, Recipe, SegmentKey, StepState, Toast } from '../data/types'
+import { DEFAULT_WEIGHTS, pangvSummary, scoreProducts } from '../lib/ai'
+import { assetSummary } from '../lib/assets'
 
 export type FlyerLayout = 'klassisch' | 'editorial' | 'kompakt'
 
@@ -36,6 +37,7 @@ export interface State {
   flyer: FlyerState
   importSt: ImportState
   campaignStatus: CampaignStatus
+  campaignWeek: string
   rankingConfirmed: boolean
   approval: { recipeOk: boolean; bundleOk: boolean; note: string }
   channels: Record<string, ChannelState>
@@ -43,14 +45,27 @@ export interface State {
   approvedAt: string | null
   toasts: Toast[]
   trendBoost: string | null
+  assets: ProductAsset[]
+  pangvConfirmations: Record<string, { at: string; productIds: string[] }>
 }
 
 function defaultIncluded() {
   return [...PRODUCTS]
-    .map((p) => ({ p, s: scoreProduct(p, DEFAULT_WEIGHTS).score }))
+    .map((p) => ({ p, s: scoreProducts([p], DEFAULT_WEIGHTS).get(p.id)?.score ?? 50 }))
     .sort((a, b) => b.s - a.s)
     .slice(0, 9)
     .map((x) => x.p.id)
+}
+
+function defaultAssets(): ProductAsset[] {
+  return PRODUCTS.map((p) => ({
+    productId: p.id,
+    src: undefined,
+    source: 'lieferant' as const,
+    symbolbild: false,
+    note: 'Standardproduktbild',
+    updatedAt: '2026-08-22T10:00:00',
+  }))
 }
 
 const initialChannels = (): Record<string, ChannelState> =>
@@ -60,6 +75,8 @@ const initialChannels = (): Record<string, ChannelState> =>
       { status: c.id === 'dooh' ? 'aktualisierung' : 'bereit', last: null } as ChannelState,
     ]),
   )
+
+export const CAMPAIGN_WEEK_DEFAULT = '35'
 
 export const initialState: State = {
   products: PRODUCTS,
@@ -81,6 +98,7 @@ export const initialState: State = {
   },
   importSt: { status: 'idle', source: null, rows: 0, errors: 0, warnings: 0, at: null },
   campaignStatus: 'in_pruefung',
+  campaignWeek: CAMPAIGN_WEEK_DEFAULT,
   rankingConfirmed: false,
   approval: { recipeOk: false, bundleOk: false, note: '' },
   channels: initialChannels(),
@@ -88,6 +106,8 @@ export const initialState: State = {
   approvedAt: null,
   toasts: [],
   trendBoost: null,
+  assets: defaultAssets(),
+  pangvConfirmations: {},
 }
 
 type Action =
@@ -109,6 +129,9 @@ type Action =
   | { type: 'recipe/add'; recipe: Recipe }
   | { type: 'bundle/add'; bundle: Bundle }
   | { type: 'trend/boost'; id: string | null }
+  | { type: 'campaignWeek/set'; week: string }
+  | { type: 'asset/set'; asset: ProductAsset }
+  | { type: 'pangv/confirm'; key: string; productIds: string[] }
   | { type: 'reset' }
 
 function reducer(s: State, a: Action): State {
@@ -160,6 +183,23 @@ function reducer(s: State, a: Action): State {
       return { ...s, customBundles: [a.bundle, ...s.customBundles] }
     case 'trend/boost':
       return { ...s, trendBoost: a.id }
+    case 'campaignWeek/set':
+      return { ...s, campaignWeek: a.week }
+    case 'asset/set': {
+      const existing = s.assets.findIndex((ea) => ea.productId === a.asset.productId)
+      const newAssets = existing >= 0 ? s.assets.map((ea, i) => i === existing ? a.asset : ea) : [...s.assets, a.asset]
+      return { ...s, assets: newAssets }
+    }
+    case 'pangv/confirm': {
+      const isConfirmed = s.pangvConfirmations[a.key]
+      const newConfs = { ...s.pangvConfirmations }
+      if (isConfirmed) {
+        delete newConfs[a.key]
+      } else {
+        newConfs[a.key] = { at: new Date().toLocaleString('de-DE'), productIds: a.productIds }
+      }
+      return { ...s, pangvConfirmations: newConfs }
+    }
     case 'reset':
       return { ...initialState, weights: { ...DEFAULT_WEIGHTS }, channels: initialChannels(), flyer: { ...initialState.flyer, included: defaultIncluded() } }
     default:
@@ -167,7 +207,7 @@ function reducer(s: State, a: Action): State {
   }
 }
 
-const LS_KEY = 'shz-state-v1'
+const LS_KEY = 'smart-handzettel:v2'
 
 const Ctx = createContext<{ state: State; dispatch: React.Dispatch<Action> }>({ state: initialState, dispatch: () => {} })
 
@@ -179,7 +219,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const raw = localStorage.getItem(LS_KEY)
       if (raw) {
         const parsed = JSON.parse(raw)
-        return { ...base, ...parsed, toasts: [], flyer: { ...base.flyer, ...(parsed.flyer || {}) }, importSt: { ...base.importSt, ...(parsed.importSt || {}) }, approval: { ...base.approval, ...(parsed.approval || {}) } }
+        // Filter out undefined values from old payloads so defaults from base are preserved
+        const clean = Object.fromEntries(Object.entries(parsed).filter(([, v]) => v !== undefined)) as Partial<State>
+        return { ...base, ...clean, toasts: [], flyer: { ...base.flyer, ...(clean.flyer || {}) }, importSt: { ...base.importSt, ...(clean.importSt || {}) }, approval: { ...base.approval, ...(clean.approval || {}) } }
       }
     } catch {}
     return base
@@ -218,7 +260,7 @@ export function stepStates(s: State): StepState[] {
   return [
     importDone ? (s.importSt.errors > 0 ? 'attention' : 'done') : s.importSt.status === 'processing' ? 'active' : 'locked',
     !importDone ? 'locked' : s.rankingConfirmed ? 'done' : 'active',
-    !s.rankingConfirmed ? 'locked' : pangv.fehler > 0 ? 'attention' : s.flyer.committed ? 'done' : 'active',
+    !s.rankingConfirmed ? 'locked' : pangv.kritisch > 0 ? 'attention' : s.flyer.committed ? 'done' : 'active',
     approved ? 'done' : s.flyer.committed ? 'active' : 'locked',
     published ? 'done' : approved ? 'active' : 'locked',
   ]
@@ -240,15 +282,21 @@ export interface CheckRow {
   action?: 'recipe' | 'bundle'
 }
 
+function bilderDetail(s: State): string {
+  const a = assetSummary(s.assets)
+  if (s.assets.length === 0) return `0/${s.products.length} Produktmotive zugeordnet`
+  return `${s.products.length} Artikel — ${a.lieferant} Lief., ${a.optimiert} opt., ${a.ki} KI`
+}
+
 export function approvalChecklist(s: State): CheckRow[] {
   const importDone = s.importSt.status === 'done'
   const pricesOk = s.products.every((p) => p.promo < p.price)
   const pangv = pangvSummary(s.products)
   return [
-    { key: 'produkte', label: 'Produkte validiert', detail: importDone ? `${s.importSt.rows} Datensätze · ${s.importSt.warnings} Warnungen` : 'Noch kein validierter Import für KW 35', state: importDone && s.importSt.errors === 0 ? 'ok' : 'error' },
+    { key: 'produkte', label: 'Produkte validiert', detail: importDone ? `${s.importSt.rows} Datensätze · ${s.importSt.warnings} Warnungen` : `Noch kein validierter Import für KW ${s.campaignWeek}`, state: importDone && s.importSt.errors === 0 ? 'ok' : 'error' },
     { key: 'preise', label: 'Preise validiert', detail: pricesOk ? 'Alle Aktionspreise unterhalb der Normalpreise' : 'Mindestens ein Aktionspreis ≥ Normalpreis', state: pricesOk ? 'ok' : 'error' },
-    { key: 'pangv', label: 'PAngV-konform', detail: `${pangv.konform}/${pangv.total} vollständig konform · ${pangv.warnung} Warnungen · ${pangv.fehler} Fehler`, state: pangv.fehler === 0 ? 'ok' : 'error' },
-    { key: 'bilder', label: 'Bilder verfügbar', detail: `${s.products.length}/${s.products.length} Produktmotive zugeordnet`, state: 'ok' },
+    { key: 'pangv', label: 'PAngV-Vorprüfung', detail: `${pangv.ok + pangv.offen}/${pangv.total} geprüft · ${pangv.offen} offen · ${pangv.warnung} Warnungen · ${pangv.kritisch} kritisch`, state: pangv.kritisch > 0 ? 'error' : pangv.offen > 0 ? 'open' : 'ok' },
+    { key: 'bilder', label: 'Bilder verfügbar', detail: bilderDetail(s), state: s.assets.length >= s.products.length ? 'ok' : 'open' },
     { key: 'rezepte', label: 'Rezepte freigegeben', detail: s.flyer.recipeId ? (s.approval.recipeOk ? 'Rezept der Woche bestätigt' : 'Rezept im Flyer – Bestätigung ausstehend') : 'Kein Rezept im Flyer', state: s.flyer.recipeId && s.approval.recipeOk ? 'ok' : 'open', action: 'recipe' },
     { key: 'bundles', label: 'Bundles freigegeben', detail: s.flyer.bundleId ? (s.approval.bundleOk ? 'Smart Bundle bestätigt' : 'Bundle im Flyer – Bestätigung ausstehend') : 'Kein Bundle im Flyer', state: s.flyer.bundleId && s.approval.bundleOk ? 'ok' : 'open', action: 'bundle' },
     { key: 'personalisierung', label: 'Personalisierung bereit', detail: s.flyer.personalization ? '6 Zielgruppensegmente aktiv, Vorschau geprüft' : 'Personalisierung deaktiviert – alle Kunden sehen denselben Flyer', state: s.flyer.personalization ? 'ok' : 'open' },

@@ -2,18 +2,20 @@ import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useApp, stepStates, STEP_META, CAMPAIGN_LABEL } from '../state/AppState'
 import { DASH_KPIS, RETAILER, TREND_EVENTS } from '../data/mock'
-import { scoreProduct } from '../lib/ai'
+import { scoreOne, scoreProducts, pangvSummary } from '../lib/ai'
 import { Badge, Btn, Card, SectionHead, Kpi, ScoreRing, cn } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { formatDE } from '../lib/utils'
 
-const NEXT_STEP_COPY: { title: string; desc: string; cta: string }[] = [
-  { title: 'Aktionsdaten für KW 35 importieren', desc: 'Artikel, Preise und Bestände aus Excel, Sheets oder SAP übernehmen und validieren.', cta: 'Daten importieren' },
-  { title: 'KI-Ranking prüfen & bestätigen', desc: 'Die KI hat alle Artikel bewertet. Gewichtung anpassen und Top-Auswahl übernehmen.', cta: 'Ranking öffnen' },
-  { title: 'Handzettel im Builder finalisieren', desc: 'Layout, Hero-Produkt, Rezept & Bundle prüfen – inklusive Segment-Personalisierung.', cta: 'Zum Flyer Builder' },
-  { title: 'Kampagne KW 35 freigeben', desc: 'Checkliste bestätigen: Produkte, Preise, PAngV, Bilder, Rezepte und Bundles.', cta: 'Zur Freigabe' },
-  { title: 'Kampagne veröffentlichen', desc: 'Ein Klick: Print-PDF, Web, App, E-Mail, Push, Social, OOH, DooH & In-Store.', cta: 'Zum Export' },
-]
+function nextStepCopy(week: string): { title: string; desc: string; cta: string }[] {
+  return [
+    { title: `Aktionsdaten für KW ${week} importieren`, desc: 'Artikel, Preise und Bestände aus Excel, Sheets oder SAP übernehmen und validieren.', cta: 'Daten importieren' },
+    { title: 'KI-Ranking prüfen & bestätigen', desc: 'Die KI hat alle Artikel bewertet. Gewichtung anpassen und Top-Auswahl übernehmen.', cta: 'Ranking öffnen' },
+    { title: 'Handzettel im Builder finalisieren', desc: 'Layout, Hero-Produkt, Rezept & Bundle prüfen – inklusive Segment-Personalisierung.', cta: 'Zum Flyer Builder' },
+    { title: `Kampagne KW ${week} freigeben`, desc: 'Checkliste bestätigen: Produkte, Preise, PAngV, Bilder, Rezepte und Bundles.', cta: 'Zur Freigabe' },
+    { title: 'Kampagne veröffentlichen', desc: 'Ein Klick: Print-PDF, Web, App, E-Mail, Push, Social, OOH, DooH & In-Store.', cta: 'Zum Export' },
+  ]
+}
 
 export default function Dashboard() {
   const { state, allRecipes } = useApp()
@@ -21,14 +23,20 @@ export default function Dashboard() {
   const steps = stepStates(state)
   const camp = CAMPAIGN_LABEL[state.campaignStatus]
   const nextIdx = steps.findIndex((s) => s !== 'done')
-  const next = NEXT_STEP_COPY[nextIdx === -1 ? 4 : nextIdx]
+  const next = nextStepCopy(state.campaignWeek)[nextIdx === -1 ? 4 : nextIdx]
 
   const top = [...state.products]
-    .map((p) => ({ p, r: scoreProduct(p, state.weights) }))
+    .map((p) => ({ p, r: scoreOne(p, state.products, state.weights) }))
     .sort((a, b) => b.r.score - a.r.score)
     .slice(0, 4)
 
   const doneCount = steps.filter((s) => s === 'done').length
+
+  const pangv = pangvSummary(state.products)
+  const dashKpis = DASH_KPIS.map((k) => k.id === 'pangv'
+    ? { ...k, value: `${pangv.ok + pangv.offen}/${pangv.total}`, sub: pangv.offen > 0 ? `${pangv.offen} offen` : 'alle geprüft', points: [...k.points.slice(0, -1), pangv.ok + pangv.offen] }
+    : k
+  )
 
   return (
     <div className="space-y-5 anim-in">
@@ -52,7 +60,7 @@ export default function Dashboard() {
 
       {/* KPI-Raster */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-        {DASH_KPIS.map((k) => (
+        {dashKpis.map((k) => (
           <Kpi key={k.id} label={k.label} value={k.value} sub={k.sub} delta={k.delta} points={k.points} />
         ))}
       </div>
@@ -67,7 +75,7 @@ export default function Dashboard() {
               <span className="text-[11px] text-zinc-400">{doneCount}/5 Schritte abgeschlossen</span>
             </div>
             <div className="mt-2 flex items-baseline gap-3 flex-wrap">
-              <span className="text-3xl font-bold tracking-tight">Handzettel KW 35</span>
+              <span className="text-3xl font-bold tracking-tight">Handzettel KW {state.campaignWeek}</span>
               <span className="text-sm text-zinc-400 tnum">{RETAILER.campaign.periodLong}</span>
             </div>
             <p className="text-[13px] text-zinc-400 mt-2 max-w-xl leading-relaxed">
@@ -169,7 +177,7 @@ export default function Dashboard() {
         {/* Trend-Signale */}
         <Card>
           <SectionHead
-            title="Trend-Signale für KW 35"
+            title={`Trend-Signale für KW ${state.campaignWeek}`}
             sub="Wetter, Events & Nachfragespitzen"
             right={
               <Link to="/trends" className="text-xs font-semibold text-accent-700 hover:text-accent-800 inline-flex items-center gap-1">

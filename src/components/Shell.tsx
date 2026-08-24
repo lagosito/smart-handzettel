@@ -80,7 +80,7 @@ export default function Shell() {
         <div className="px-4 pb-5 space-y-3">
           <div className="rounded-xl bg-white/5 border border-white/10 p-3.5">
             <div className="text-[10px] uppercase tracking-wider font-semibold text-accent-300">Aktive Kampagne</div>
-            <div className="text-[13px] font-semibold mt-1">Handzettel KW 35</div>
+            <div className="text-[13px] font-semibold mt-1">Handzettel KW {state.campaignWeek}</div>
             <div className="text-[11px] text-zinc-400 mt-0.5">{RETAILER.campaign.period}</div>
             <Badge tone={camp.tone} className="mt-2">{camp.label}</Badge>
           </div>
@@ -127,7 +127,7 @@ export default function Shell() {
           <div className="flex-1" />
           <div className="hidden xl:flex items-center gap-2 text-xs text-zinc-500 border border-zinc-200 bg-white rounded-lg px-3 h-9">
             <Icon name="calendar" size={14} className="text-zinc-400" />
-            <span className="font-medium text-zinc-700">KW 35</span>
+            <span className="font-medium text-zinc-700">KW {state.campaignWeek}</span>
             <span className="text-zinc-300">·</span>
             {RETAILER.campaign.period}
             <Badge tone={camp.tone} className="ml-1">{camp.label}</Badge>

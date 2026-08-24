@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../state/AppState'
 import { SEGMENTS, bundleById, recipeById } from '../data/mock'
-import { pangvSummary, scoreProduct } from '../lib/ai'
+import { pangvSummary, scoreOne, scoreProducts } from '../lib/ai'
+import { canGenerateImage, generateAsset } from '../lib/assets'
 import { AiTag, Badge, Btn, Card, Toggle, cn, inputCls } from '../components/ui'
 import { Icon } from '../lib/icons'
 import FlyerPreview from '../components/FlyerPreview'
@@ -32,7 +33,7 @@ export default function Builder() {
   const includedScore = useMemo(() => {
     const list = state.products.filter((p) => flyer.included.includes(p.id))
     if (!list.length) return 0
-    return Math.round(list.reduce((s, p) => s + scoreProduct(p, state.weights).score, 0) / list.length)
+    return Math.round(list.reduce((s, p) => s + scoreOne(p, state.products, state.weights).score, 0) / list.length)
   }, [state.products, flyer.included, state.weights])
 
   const marginAvg = useMemo(() => {
@@ -47,7 +48,7 @@ export default function Builder() {
     const out: { icon: string; tone: 'ok' | 'warn' | 'info'; text: string; action?: () => void; actionLabel?: string }[] = []
     const missing = state.products
       .filter((p) => !flyer.included.includes(p.id))
-      .map((p) => ({ p, s: scoreProduct(p, state.weights).score }))
+      .map((p) => ({ p, s: scoreOne(p, state.products, state.weights).score }))
       .sort((a, b) => b.s - a.s)[0]
     if (missing && missing.s >= 88) {
       out.push({
@@ -63,10 +64,10 @@ export default function Builder() {
     }
     const low = state.products.find((p) => flyer.included.includes(p.id) && p.stock < 180)
     if (low) out.push({ icon: 'alert', tone: 'warn', text: `„${low.name}" hat nur ${low.stock} Stück Bestand – Reichweite oder Platzierung reduzieren.` })
-    if (pangv.fehler > 0) out.push({ icon: 'alert', tone: 'warn', text: `${pangv.fehler} Artikel im Flyer verletzen die PAngV – bitte Preise prüfen.` })
+    if (pangv.kritisch > 0) out.push({ icon: 'alert', tone: 'warn', text: `${pangv.kritisch} Artikel im Flyer verletzen die PAngV – bitte Preise prüfen.` })
     if (flyer.personalization) out.push({ icon: 'checkc', tone: 'ok', text: `Personalisierung aktiv: 6 Segmente erhalten eigene Hero-Produkte, Rezepte & Bundles.` })
     return out
-  }, [state.products, state.weights, flyer, pangv.fehler])
+  }, [state.products, state.weights, flyer, pangv.kritisch])
 
   const setSegment = (key: string) => {
     const seg = SEGMENTS.find((s) => s.key === key)!
@@ -101,7 +102,7 @@ export default function Builder() {
             <h1 className="text-[22px] font-bold tracking-tight text-zinc-900">Flyer Builder</h1>
             <AiTag />
           </div>
-          <p className="text-[13px] text-zinc-500 mt-0.5">Schritt 3 von 5 · Die KI hat den Entwurf für KW 35 vorbereitet – Sie behalten die Kontrolle</p>
+          <p className="text-[13px] text-zinc-500 mt-0.5">Schritt 3 von 5 · Die KI hat den Entwurf für KW {state.campaignWeek} vorbereitet – Sie behalten die Kontrolle</p>
         </div>
         <div className="flex gap-2 items-center flex-wrap">
           <div className="inline-flex rounded-lg border border-zinc-300 bg-white p-0.5">
@@ -183,6 +184,15 @@ export default function Builder() {
                       {items.map((p) => {
                         const on = flyer.included.includes(p.id)
                         const isHero = flyer.heroId === p.id
+                        const asset = state.assets.find((a) => a.productId === p.id)
+                        const kiCheck = canGenerateImage(p)
+                        const handleGenerateKi = async () => {
+                          if (!kiCheck.allowed) return
+                          const newAsset = await generateAsset(p)
+                          dispatch({ type: 'asset/set', asset: newAsset })
+                          notify(`KI-Bild für ${p.name} erzeugt.`)
+                        }
+                        const sourceLabel = asset?.source === 'ki' ? 'KI' : asset?.source === 'optimiert' ? 'OPT' : asset?.source === 'lieferant' ? 'LIEF' : null
                         return (
                           <div key={p.id} className={cn('flex items-center gap-2 rounded-lg border px-2 py-1.5', on ? 'border-accent-300 bg-accent-50/50' : 'border-zinc-150 border-zinc-200 bg-white')}>
                             <input
@@ -194,6 +204,24 @@ export default function Builder() {
                             />
                             <span className="text-sm">{p.emoji}</span>
                             <span className={cn('flex-1 text-[11.5px] font-medium truncate', on ? 'text-zinc-900' : 'text-zinc-500')}>{p.name}</span>
+                            {sourceLabel && (
+                              <span className={cn('text-[8px] font-bold px-1 py-0.5 rounded shrink-0', asset?.source === 'ki' ? 'bg-violet-100 text-violet-700' : asset?.source === 'optimiert' ? 'bg-blue-100 text-blue-700' : 'bg-zinc-100 text-zinc-600')}>
+                                {sourceLabel}
+                              </span>
+                            )}
+                            {kiCheck.allowed && on && (
+                              <button
+                                title={kiCheck.allowed ? 'KI-Bild erzeugen' : kiCheck.reason}
+                                onClick={handleGenerateKi}
+                                className="shrink-0 text-[9px] font-semibold text-violet-500 hover:text-violet-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                disabled={!kiCheck.allowed}
+                              >
+                                KI
+                              </button>
+                            )}
+                            {!kiCheck.allowed && on && (
+                              <span className="text-[8px] text-zinc-400 shrink-0" title={kiCheck.reason}>✗ KI</span>
+                            )}
                             <button
                               title={isHero ? 'Hero-Produkt' : 'Als Hero setzen'}
                               onClick={() => on && dispatch({ type: 'flyer/patch', patch: { heroId: p.id } })}
@@ -296,15 +324,16 @@ export default function Builder() {
                 { l: 'Ø KI-Score', v: String(includedScore) },
                 { l: 'Ø Marge', v: marginAvg + ' %' },
                 { l: 'Kategorien', v: `${catCoverage}/9` },
-                { l: 'PAngV', v: pangv.fehler === 0 ? 'konform' : `${pangv.fehler} Fehler` },
+                { l: 'PAngV', v: pangv.kritisch === 0 ? `${pangv.offen} offen` : `${pangv.kritisch} kritisch` },
               ].map((x) => (
                 <div key={x.l}>
                   <div className="text-[10px] uppercase tracking-wider font-semibold text-zinc-400">{x.l}</div>
-                  <div className={cn('text-lg font-bold tnum mt-0.5', x.v === 'konform' ? 'text-emerald-600' : x.v.includes('Fehler') ? 'text-red-600' : 'text-zinc-900')}>{x.v}</div>
+                  <div className={cn('text-lg font-bold tnum mt-0.5', x.v.includes('offen') ? 'text-amber-600' : x.v.includes('kritisch') ? 'text-red-600' : 'text-emerald-600')}>{x.v}</div>
                 </div>
               ))}
             </div>
-            <div className="space-y-2 mt-4 pt-3.5 border-t border-zinc-100">
+            <p className="text-[10px] text-zinc-400 mt-2">Automatische Vorprüfung. Ersetzt keine rechtliche Beratung.</p>
+            <div className="space-y-2 mt-3 pt-3 border-t border-zinc-100">
               {suggestions.map((su, i) => (
                 <div key={i} className={cn('rounded-lg border px-2.5 py-2 text-[11px] leading-snug', su.tone === 'ok' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : su.tone === 'warn' ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-sky-50 border-sky-200 text-sky-900')}>
                   <div className="flex items-start gap-1.5">
